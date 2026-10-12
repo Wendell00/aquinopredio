@@ -20,7 +20,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 
 ### Localização de prédio existente
 - **RN-020** — No onboarding, o usuário pode buscar prédios por: nome, CEP, endereço ou "perto de mim" (geolocalização do navegador, com permissão).
-- **RN-021** — A busca retorna somente prédios com status `verificado` ou `pendente_revisao`. Prédios `rejeitado` não aparecem.
+- **RN-021** — A busca retorna somente prédios com status `verificado`, `pendente_revisao` ou `pendente_validacao` (recém-cadastrado, aguardando a validação automática). Prédios `rejeitado` e `arquivado` não aparecem.
 - **RN-022** — Ao selecionar um prédio, o usuário informa a unidade (apto/bloco/casa) e solicita vínculo.
 
 ### Criação de prédio

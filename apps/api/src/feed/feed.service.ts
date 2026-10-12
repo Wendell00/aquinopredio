@@ -45,7 +45,8 @@ interface FeedRow {
 const VISIBLE = `
   a.status = 'ativo'
   AND a.user_id <> $1
-  AND (a.building_id = v.id OR ST_DWithin(a.location, v.location, a.radius_m))
+  -- Raio 0 = só o próprio prédio, mesmo que outro prédio esteja no mesmo ponto (distância 0).
+  AND (a.building_id = v.id OR (a.radius_m > 0 AND ST_DWithin(a.location, v.location, a.radius_m)))
   AND NOT EXISTS (
     SELECT 1 FROM user_blocks ub
     WHERE (ub.blocker_id = $1 AND ub.blocked_id = a.user_id) OR (ub.blocker_id = a.user_id AND ub.blocked_id = $1)

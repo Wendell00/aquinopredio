@@ -62,7 +62,7 @@ describe("Prédios e onboarding (e2e)", () => {
     expect(sameAddress.body).toHaveLength(1);
   });
 
-  it("busca só prédios verificados ou em revisão, e permite entrar com a unidade (RN-021, RN-037)", async () => {
+  it("busca prédios válidos (não recusados) e permite entrar com a unidade (RN-021, RN-037)", async () => {
     const owner = await onboardedProfile(app);
     const input = buildingInput({ name: "Condomínio Bela Vista do Parque" });
     const created = await as(app, owner.cookie).post("/api/buildings").send(input).expect(201);
@@ -70,8 +70,14 @@ describe("Prédios e onboarding (e2e)", () => {
 
     const resident = await onboardedProfile(app);
     const api = as(app, resident.cookie);
-    const hidden = await api.get(`/api/buildings/search?cep=${input.cep}`).expect(200);
-    expect(hidden.body).toHaveLength(0);
+    // Recém-cadastrado (na fila de validação) já aparece; recusado não (RN-021).
+    const pending = await api.get(`/api/buildings/search?cep=${input.cep}`).expect(200);
+    expect(pending.body.map((b: { id: string }) => b.id)).toContain(buildingId);
+    await app
+      .get(DataSource)
+      .query(`UPDATE buildings SET status = 'rejeitado' WHERE id = $1`, [buildingId]);
+    const rejected = await api.get(`/api/buildings/search?cep=${input.cep}`).expect(200);
+    expect(rejected.body).toHaveLength(0);
 
     await app
       .get(DataSource)

@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Início — Aqui no Prédio" };
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ predio?: string; vinculo?: string }>;
+  searchParams: Promise<{ cadastro?: string }>;
 }): Promise<React.JSX.Element> {
   const [params, me, buildings, categories] = await Promise.all([
     searchParams,
@@ -26,7 +26,7 @@ export default async function HomePage({
 
   return (
     <main className="mx-auto flex max-w-[60rem] flex-col gap-6 px-5 py-6">
-      {params.predio === "novo" && (
+      {params.cadastro === "predio" && (
         <Alert tone="success">
           Prédio cadastrado! Você é o administrador e já pode convidar os vizinhos.
         </Alert>

@@ -224,4 +224,23 @@ describe("Feed, detalhe e interações (e2e)", () => {
     const fromB = await feedIds(anotherInB.cookie);
     expect(fromB[0]).toBe(neighborBuildingAd);
   });
+
+  it("raio 0 não vaza para outro prédio no mesmo ponto (RN-057)", async () => {
+    const spot = uniqueSpot();
+    const first = await resident(app, { lat: spot.lat, lng: spot.lng }, "Prédio Um");
+    const second = await resident(
+      app,
+      { lat: spot.lat, lng: spot.lng, cep: "09999000", number: "1", ignoreDuplicates: true },
+      "Prédio Dois",
+    );
+    await db.query(`UPDATE buildings SET status = 'verificado' WHERE id = ANY($1)`, [
+      [first.buildingId, second.buildingId],
+    ]);
+    const onlyMine = await publish(first.cookie, first.buildingId, {
+      title: "Só para o prédio um",
+      radiusKm: 0,
+    });
+    expect(await feedIds(second.cookie)).not.toContain(onlyMine);
+    await as(app, second.cookie).get(`/api/ads/${onlyMine}`).expect(404);
+  });
 });

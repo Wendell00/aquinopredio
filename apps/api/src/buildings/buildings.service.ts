@@ -27,8 +27,11 @@ import {
   type BuildingVerificationJob,
 } from "./verification/verification.queue";
 
-/** Prédios que aparecem na busca e aceitam novos moradores (RN-021). */
-const SEARCHABLE: Building["status"][] = ["verificado", "pendente_revisao"];
+/**
+ * Prédios que aparecem na busca e aceitam novos moradores (RN-021). Inclui os que ainda estão
+ * na fila de validação: vizinhos podem entrar logo, com as mesmas restrições de prédio pendente (RN-028).
+ */
+const SEARCHABLE: Building["status"][] = ["verificado", "pendente_revisao", "pendente_validacao"];
 const OPEN_MEMBERSHIP: BuildingMembership["status"][] = ["pendente", "ativo"];
 
 interface SummaryRow {

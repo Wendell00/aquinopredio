@@ -197,7 +197,7 @@ export function CreateBuildingWizard({
         }
       }
       await queryClient.invalidateQueries();
-      router.push("/inicio?predio=novo");
+      router.push("/inicio?cadastro=predio");
       router.refresh();
     } catch (cause) {
       fail(cause, "Não foi possível cadastrar o prédio. Tente de novo.");
