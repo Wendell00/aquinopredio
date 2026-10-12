@@ -1,6 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
-import { Test } from "@nestjs/testing";
+import { Test, type TestingModuleBuilder } from "@nestjs/testing";
 import request from "supertest";
 import { DataSource } from "typeorm";
 import { AppModule } from "../../src/app.module";
@@ -8,8 +8,10 @@ import { setupApp } from "../../src/app.setup";
 
 export const ORIGIN = "http://localhost:3000";
 
-export async function createTestApp(): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+export async function createTestApp(
+  customize: (builder: TestingModuleBuilder) => TestingModuleBuilder = (builder) => builder,
+): Promise<INestApplication> {
+  const moduleRef = await customize(Test.createTestingModule({ imports: [AppModule] })).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     bodyParser: false,
     logger: ["error"],
@@ -81,4 +83,27 @@ export async function signUpAndLogin(
     .map((c) => c.split(";")[0])
     .join("; ");
   return { cookie, email, password };
+}
+
+/** Faz uma requisição autenticada que altera estado (com Origin do app). */
+export function as(app: INestApplication, cookie: string) {
+  const server = app.getHttpServer();
+  return {
+    get: (url: string) => request(server).get(url).set("Cookie", cookie),
+    post: (url: string) => request(server).post(url).set("Cookie", cookie).set("Origin", ORIGIN),
+    put: (url: string) => request(server).put(url).set("Cookie", cookie).set("Origin", ORIGIN),
+    patch: (url: string) => request(server).patch(url).set("Cookie", cookie).set("Origin", ORIGIN),
+    delete: (url: string) =>
+      request(server).delete(url).set("Cookie", cookie).set("Origin", ORIGIN),
+  };
+}
+
+/** Usuário pronto para o passo do prédio (cadastro + perfil). */
+export async function onboardedProfile(app: INestApplication, name = "Vizinha Teste") {
+  const session = await signUpAndLogin(app, { name });
+  await as(app, session.cookie)
+    .post("/api/me/profile")
+    .send({ name, acceptTerms: true, isAdult: true })
+    .expect(201);
+  return session;
 }

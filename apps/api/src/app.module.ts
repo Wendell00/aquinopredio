@@ -1,13 +1,21 @@
+import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { AiModule } from "./ai/ai.module";
+import { AuthGuard } from "./auth/auth.guard";
 import { AuthModule } from "./auth/auth.module";
+import { BuildingsModule } from "./buildings/buildings.module";
+import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
 import { databaseConfig } from "./config/database.config";
 import { type Env, validateEnv } from "./config/env";
+import { GeoModule } from "./geo/geo.module";
 import { MailModule } from "./mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
+import { RedisModule } from "./redis/redis.module";
+import { SettingsModule } from "./settings/settings.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({
@@ -25,11 +33,28 @@ import { UsersModule } from "./users/users.module";
       }),
     }),
     TypeOrmModule.forRootAsync(databaseConfig),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        // BullMQ exige maxRetriesPerRequest: null nas conexões dos workers.
+        connection: { url: config.get("REDIS_URL", { infer: true }), maxRetriesPerRequest: null },
+        prefix: "anp",
+      }),
+    }),
+    RedisModule,
+    SettingsModule,
+    AiModule,
     MailModule,
     AuthModule,
     HealthModule,
     UsersModule,
+    GeoModule,
+    BuildingsModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  // Ordem importa: primeiro a sessão (AuthGuard), depois o rate limit por usuário.
+  providers: [
+    { provide: APP_GUARD, useExisting: AuthGuard },
+    { provide: APP_GUARD, useClass: UserThrottlerGuard },
+  ],
 })
 export class AppModule {}

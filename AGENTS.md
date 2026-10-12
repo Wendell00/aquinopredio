@@ -72,6 +72,14 @@ packages/
 - No front, login/cadastro usam `authClient` (`@/lib/auth/auth-client`); dados do usuário vêm de `/api/me`. Páginas protegidas: `proxy.ts` faz a checagem otimista e o layout valida com `getMe()`.
 - Redirecionamentos com `?next=` passam sempre por `safeNextPath`.
 
+## Prédios, geolocalização e IA
+
+- Coordenadas em `geography(Point, 4326)` com índice GIST; consultas por raio em SQL (`ST_DWithin`/`ST_Distance`) via `dataSource.query`, parametrizadas.
+- Endereço: ViaCEP + Nominatim/Overpass (`GeoService`), com cache no Redis e 1 req/s ao Nominatim. Nos e2e, o `GeoService` é substituído por `test/support/fakes.ts` (sem rede).
+- IA só pelo `AiService` (OpenRouter): saída JSON validada com zod (`z.strictObject`), conteúdo do usuário sempre dentro de `delimit()`, prompts versionados em `src/ai/prompts/`. Toda chamada é registrada em `ai_calls`. Sem chave/indisponível → `AiUnavailableError` e o fluxo aplica a RN-113.
+- Tarefas assíncronas em filas BullMQ; workers ficam em módulos carregados por `ConditionalModule` (`WORKERS_ENABLED`). A lógica fica num service testável; o processor só chama o service.
+- Valores `[configurável]`: `SettingsService` (`src/settings/settings.defaults.ts`).
+
 ## API (`apps/api`)
 
 - Um módulo por domínio (`docs/06-arquitetura.md` §6.4). Controller fino → service com a regra → repositório TypeORM.

@@ -1,6 +1,5 @@
 import { Global, Inject, Module, type OnApplicationShutdown } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { APP_GUARD } from "@nestjs/core";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Pool } from "pg";
 import { type Env, readEnv } from "../config/env";
@@ -29,9 +28,9 @@ import { AuthGuard } from "./auth.guard";
         createAuth({ env: readEnv(config), pool, mail }),
     },
     UsersService,
-    { provide: APP_GUARD, useClass: AuthGuard },
+    AuthGuard,
   ],
-  exports: [AUTH, UsersService],
+  exports: [AUTH, UsersService, AuthGuard],
 })
 export class AuthModule implements OnApplicationShutdown {
   constructor(@Inject(AUTH_POOL) private readonly pool: Pool) {}
