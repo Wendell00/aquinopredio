@@ -98,31 +98,9 @@ export class Buildings1760400000000 implements MigrationInterface {
     await q.query(
       `CREATE INDEX building_verifications_building_idx ON building_verifications (building_id, created_at DESC)`,
     );
-
-    // Registro de cada chamada de IA: custo, latência, versão do prompt (docs §4.4).
-    await q.query(
-      `CREATE TYPE ai_task AS ENUM ('ad_generation', 'building_validation', 'moderation')`,
-    );
-    await q.query(`
-      CREATE TABLE ai_calls (
-        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        task ai_task NOT NULL,
-        user_id uuid REFERENCES users (id) ON DELETE SET NULL,
-        model text NOT NULL,
-        prompt_version text NOT NULL,
-        tokens_in integer,
-        tokens_out integer,
-        latency_ms integer NOT NULL,
-        success boolean NOT NULL,
-        error text,
-        created_at timestamptz NOT NULL DEFAULT now()
-      )`);
-    await q.query(`CREATE INDEX ai_calls_user_task_idx ON ai_calls (user_id, task, created_at)`);
   }
 
   async down(q: QueryRunner): Promise<void> {
-    await q.query(`DROP TABLE ai_calls`);
-    await q.query(`DROP TYPE ai_task`);
     await q.query(`DROP TABLE building_verifications`);
     await q.query(`DROP TYPE verification_decider`);
     await q.query(`DROP TYPE verification_decision`);

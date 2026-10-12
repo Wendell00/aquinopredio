@@ -200,3 +200,8 @@ export const createBuildingResponseSchema = z.discriminatedUnion("result", [
   z.object({ result: z.literal("duplicates"), candidates: z.array(buildingSummarySchema) }),
 ]);
 export type CreateBuildingResponse = z.infer<typeof createBuildingResponseSchema>;
+
+export const JOIN_POLICY_LABELS: Record<JoinPolicy, string> = {
+  automatica: "Entrada automática",
+  aprovacao_admin: "Com aprovação do administrador",
+};

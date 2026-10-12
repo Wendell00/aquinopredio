@@ -86,7 +86,7 @@ packages/
 - **Validação de entrada** com `ZodValidationPipe` + schema do `shared`. Nunca confie no corpo da requisição.
 - **Autorização no backend sempre** (RNF-012): filtros de visibilidade por prédio/raio ficam na query, nunca só no front.
 - Variáveis de ambiente passam pelo schema de `config/env.ts`; a API não sobe com env inválido. Acesse via `ConfigService<Env, true>`.
-- `synchronize` só em desenvolvimento; fora disso, migrations.
+- Schema só por migrations (`src/database/migrations`, registradas em `index.ts`). **Nunca edite uma migration já aplicada** (em qualquer banco, inclusive o de dev): crie outra, idempotente se precisar.
 - Erros: lance exceções HTTP do Nest (`NotFoundException`, `ForbiddenException`…), com mensagem em português para o usuário. Não vaze stack ou detalhes internos.
 - Logs com `Logger` do Nest; nunca logue segredo, token ou dado pessoal.
 

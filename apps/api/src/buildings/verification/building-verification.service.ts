@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { AiService, AiUnavailableError, delimit } from "../../ai/ai.service";
@@ -17,7 +17,7 @@ import { decide, evaluateRules, type VerificationDecision } from "./verification
 export interface VerificationOutcome {
   decision: VerificationDecision;
   score: number | null;
-  decidedBy: "ia" | "regras";
+  decidedBy: "ia" | "regras" | "admin";
 }
 
 /**
@@ -146,12 +146,33 @@ export class BuildingVerificationService {
     });
   }
 
+  /** Decisão manual do admin da plataforma na fila de revisão (RN-027). */
+  async decideByAdmin(
+    buildingId: string,
+    decision: "verificado" | "rejeitado",
+    reason: string | null,
+    reviewerId: string,
+  ): Promise<void> {
+    const building = await this.buildings.findOneBy({ id: buildingId });
+    if (!building) throw new NotFoundException("Prédio não encontrado");
+    await this.apply(building, {
+      decision,
+      score: null,
+      decidedBy: "admin",
+      reviewerId,
+      input: { revisao_manual: true },
+      output: null,
+      reason: decision === "rejeitado" ? reason : null,
+    });
+  }
+
   private async apply(
     building: Building,
     result: {
       decision: VerificationDecision;
       score: number | null;
-      decidedBy: "ia" | "regras";
+      decidedBy: "ia" | "regras" | "admin";
+      reviewerId?: string;
       input: Record<string, unknown>;
       output: BuildingValidationOutput | null;
       model?: string;
@@ -167,6 +188,7 @@ export class BuildingVerificationService {
         score: result.score,
         decision: result.decision,
         decidedBy: result.decidedBy,
+        reviewerId: result.reviewerId ?? null,
         model: result.model ?? null,
         promptVersion: result.decidedBy === "ia" ? BUILDING_VALIDATION_PROMPT_VERSION : null,
       });

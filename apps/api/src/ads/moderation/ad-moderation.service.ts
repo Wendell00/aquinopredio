@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -115,6 +115,31 @@ export class AdModerationService {
     });
     if (result === "em_moderacao") this.logger.log(`Anúncio ${ad.id} aguardando revisão manual`);
     return this.apply(ad, result, null);
+  }
+
+  /** Decisão manual do admin da plataforma (fila de moderação, denúncias, RN-062/RN-093). */
+  async decideByAdmin(
+    adId: string,
+    decision: "aprovar" | "remover",
+    reason: string | null,
+    reviewerId: string,
+  ): Promise<void> {
+    const ad = await this.ads.findOneBy({ id: adId });
+    if (!ad) throw new NotFoundException("Anúncio não encontrado");
+    await this.moderations.save({
+      adId,
+      decision: decision === "aprovar" ? "aprovado" : "proibido",
+      decidedBy: "admin",
+      violatedCategories: [],
+      reason,
+      confidence: null,
+      reviewerId,
+      model: null,
+      promptVersion: null,
+    });
+    // Aprovar zera as denúncias abertas que ocultaram o anúncio.
+    if (decision === "aprovar") await this.ads.update(adId, { reportCount: 0 });
+    await this.apply(ad, decision === "aprovar" ? "ativo" : "removido", reason);
   }
 
   private async record(

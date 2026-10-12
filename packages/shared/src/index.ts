@@ -1,3 +1,4 @@
+export * from "./admin";
 export * from "./ads";
 export * from "./buildings";
 export * from "./chat";
