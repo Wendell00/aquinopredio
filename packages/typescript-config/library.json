@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Library (CommonJS via NodeNext + tipos)",
+  "extends": "./base.json",
+  "compilerOptions": {}
+}

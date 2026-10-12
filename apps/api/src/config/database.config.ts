@@ -1,12 +1,14 @@
-import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
+import { ConfigService } from "@nestjs/config";
+import type { TypeOrmModuleAsyncOptions } from "@nestjs/typeorm";
+import type { Env } from "./env";
 
-export default (): MysqlConnectionOptions => ({
-  type: 'mysql',
-  host: process.env.DATABASE_HOST,
-  port: parseInt(process.env.DATABASE_PORT!) ?? 3306,
-  username: process.env.DATABASE_USERNAME,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
-  entities: [],
-  synchronize: true,
-});
+export const databaseConfig: TypeOrmModuleAsyncOptions = {
+  inject: [ConfigService],
+  useFactory: (config: ConfigService<Env, true>) => ({
+    type: "postgres",
+    url: config.get("DATABASE_URL", { infer: true }),
+    autoLoadEntities: true,
+    // Só em desenvolvimento; demais ambientes usam migrations.
+    synchronize: config.get("NODE_ENV", { infer: true }) === "development",
+  }),
+};

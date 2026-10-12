@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: aquinopredio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aquinopredio
+      POSTGRES_PASSWORD: aquinopredio
+      POSTGRES_DB: aquinopredio
+    ports:
+      # 5432 já está em uso por outro projeto nesta máquina
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aquinopredio -d aquinopredio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:

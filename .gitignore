@@ -54,3 +54,8 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+# Coverage
+coverage
+
+# Agentes (configurações locais)
+.claude/settings.local.json

@@ -1,17 +1,26 @@
 {
-  "name": "nestjs-turbo",
+  "name": "aqui-no-predio",
   "private": true,
+  "packageManager": "pnpm@11.28.2",
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
-    "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:e2e": "turbo test:e2e",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "check": "biome check . && turbo typecheck test",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "prettier": "^3.1.0",
-    "turbo": "latest"
-  },
-  "packageManager": "pnpm@8.9.0"
+    "@biomejs/biome": "2.5.14",
+    "turbo": "2.11.5",
+    "typescript": "6.0.3"
+  }
 }
