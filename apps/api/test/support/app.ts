@@ -19,6 +19,8 @@ export async function createTestApp(
   });
   setupApp(app);
   await app.init();
+  // O rate limit do Better Auth fica no banco: cada suíte começa do zero.
+  await resetRateLimits(app);
   return app;
 }
 
