@@ -6,6 +6,7 @@ import { FeedInteractions1760600000000 } from "./1760600000000-feed-interactions
 import { ChatNotifications1760700000000 } from "./1760700000000-chat-notifications";
 import { AdminSanctions1760800000000 } from "./1760800000000-admin-sanctions";
 import { AiCalls1760900000000 } from "./1760900000000-ai-calls";
+import { AdReviewFlags1761000000000 } from "./1761000000000-ad-review-flags";
 
 type MigrationClass = new () => MigrationInterface;
 
@@ -18,4 +19,5 @@ export const migrations: MigrationClass[] = [
   ChatNotifications1760700000000,
   AdminSanctions1760800000000,
   AiCalls1760900000000,
+  AdReviewFlags1761000000000,
 ];

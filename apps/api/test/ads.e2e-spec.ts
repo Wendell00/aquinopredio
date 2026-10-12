@@ -303,4 +303,51 @@ describe("Anúncios (e2e)", () => {
     expect(res.status).toBe(403);
     expect(res.body.message).toMatch(/suspensa/);
   });
+
+  describe("brechas de moderação (revisão de segurança)", () => {
+    it("editar anúncio pausado e reativar manda para moderação", async () => {
+      const { cookie, buildingId } = await resident(app);
+      const api = as(app, cookie);
+      const input = adInput(buildingId);
+      const { body: ad } = await api.post("/api/ads").send(input).expect(201);
+      await moderate(ad.id);
+      await api.post(`/api/ads/${ad.id}/pause`).expect(200);
+      await api
+        .patch(`/api/ads/${ad.id}`)
+        .send({ ...input, title: "Título trocado enquanto pausado" })
+        .expect(200);
+      const resumed = await api.post(`/api/ads/${ad.id}/resume`).expect(200);
+      expect(resumed.body.status).toBe("em_moderacao");
+    });
+
+    it("mudar tags, disponibilidade ou categoria de anúncio ativo também remodera", async () => {
+      const { cookie, buildingId } = await resident(app);
+      const api = as(app, cookie);
+      const input = adInput(buildingId);
+      const { body: ad } = await api.post("/api/ads").send(input).expect(201);
+      await moderate(ad.id);
+      const edited = await api
+        .patch(`/api/ads/${ad.id}`)
+        .send({ ...input, availability: "chama no zap 11999999999" })
+        .expect(200);
+      expect(edited.body.status).toBe("em_moderacao");
+    });
+
+    it("anúncio ocultado por denúncias não volta sozinho pela IA (RN-093)", async () => {
+      const { cookie, buildingId } = await resident(app);
+      const api = as(app, cookie);
+      const input = adInput(buildingId);
+      const { body: ad } = await api.post("/api/ads").send(input).expect(201);
+      await moderate(ad.id);
+      await db.query(`UPDATE ads SET status = 'em_moderacao', manual_review = true WHERE id = $1`, [
+        ad.id,
+      ]);
+      await api
+        .patch(`/api/ads/${ad.id}`)
+        .send({ ...input, title: "Tentando escapar da revisão" })
+        .expect(200);
+      expect(await moderate(ad.id)).toBe("em_moderacao");
+      expect((await api.get(`/api/ads/mine/${ad.id}`)).body.status).toBe("em_moderacao");
+    });
+  });
 });

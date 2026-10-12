@@ -153,11 +153,18 @@ export class AdsService {
       allowAttachedTo: currentUploadIds,
     });
 
+    // Tudo que a moderação lê conta como conteúdo (RN-064).
     const contentChanged =
       ad.title !== input.title ||
       ad.description !== input.description ||
+      ad.type !== input.type ||
+      ad.categoryId !== input.categoryId ||
+      (ad.availability ?? null) !== input.availability ||
+      ad.tags.join(",") !== input.tags.join(",") ||
       currentUploadIds.join(",") !== input.imageIds.join(",");
     const remoderate = contentChanged && (ad.status === "ativo" || ad.status === "em_moderacao");
+    // Pausado/expirado: modera ao reativar (senão bastaria editar pausado e reativar).
+    const deferModeration = contentChanged && !remoderate;
 
     await this.dataSource.transaction(async (manager) => {
       await manager.getRepository(Ad).update(ad.id, {
@@ -171,7 +178,13 @@ export class AdsService {
         whatsappEnabled: input.whatsappEnabled,
         availability: input.availability,
         tags: input.tags,
-        ...(remoderate ? { status: "em_moderacao" as const, statusReason: null } : {}),
+        ...(remoderate
+          ? {
+              status: "em_moderacao" as const,
+              statusReason: ad.manualReview ? ad.statusReason : null,
+            }
+          : {}),
+        ...(deferModeration ? { needsModeration: true } : {}),
       });
       await manager.getRepository(AdImage).delete({ adId: ad.id });
       await manager
@@ -198,6 +211,11 @@ export class AdsService {
     this.assertCanPublish(user);
     await this.assertMembership(user.id, ad.buildingId);
     await this.assertActiveLimit(user.id);
+    if (ad.needsModeration) {
+      await this.ads.update(ad.id, { status: "em_moderacao", needsModeration: false });
+      await this.enqueueModeration(ad.id);
+      return this.getMine(user.id, ad.id);
+    }
     const expired = ad.expiresAt !== null && ad.expiresAt <= new Date();
     await this.ads.update(ad.id, { status: expired ? "expirado" : "ativo" });
     return this.getMine(user.id, ad.id);
@@ -213,11 +231,18 @@ export class AdsService {
     await this.assertMembership(user.id, ad.buildingId);
     if (ad.status === "expirado") await this.assertActiveLimit(user.id);
     const days = await this.settings.get("ads.activeDays");
-    await this.ads.update(ad.id, {
-      status: "ativo",
-      expiresAt: new Date(Date.now() + days * 86_400_000),
-      expiryWarnedAt: null,
-    });
+    const expiresAt = new Date(Date.now() + days * 86_400_000);
+    if (ad.needsModeration) {
+      await this.ads.update(ad.id, {
+        status: "em_moderacao",
+        needsModeration: false,
+        expiresAt,
+        expiryWarnedAt: null,
+      });
+      await this.enqueueModeration(ad.id);
+      return this.getMine(user.id, ad.id);
+    }
+    await this.ads.update(ad.id, { status: "ativo", expiresAt, expiryWarnedAt: null });
     return this.getMine(user.id, ad.id);
   }
 

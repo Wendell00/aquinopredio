@@ -272,7 +272,7 @@ export class BuildingAdminService {
     );
     if (!ad) throw new NotFoundException("Anúncio não encontrado neste prédio");
     await this.dataSource.query(
-      `UPDATE ads SET status = 'em_moderacao', status_reason = 'Ocultado pelo administrador do prédio. Em revisão pela equipe.', updated_at = now()
+      `UPDATE ads SET status = 'em_moderacao', status_reason = 'Ocultado pelo administrador do prédio. Em revisão pela equipe.', manual_review = true, updated_at = now()
        WHERE id = $1 AND status IN ('ativo', 'pausado')`,
       [adId],
     );

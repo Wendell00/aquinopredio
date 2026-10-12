@@ -72,23 +72,29 @@ export class ChatService {
     );
     if (existing) return this.detail(user, existing.id);
 
-    // RN-084: antispam de novas conversas por dia.
+    // RN-084: antispam de novas conversas por dia. Lock por usuário evita estourar com requisições paralelas.
     const limit = await this.settings.get("chat.newConversationsPerDay");
-    const [{ total }] = await this.dataSource.query(
-      `SELECT count(*)::int AS total FROM conversations WHERE buyer_id = $1 AND created_at > now() - interval '1 day'`,
-      [user.id],
-    );
-    if (total >= limit) {
-      throw new HttpException(
-        "Você iniciou muitas conversas hoje. Tente de novo amanhã.",
-        HttpStatus.TOO_MANY_REQUESTS,
+    const created: { id: string } = await this.dataSource.transaction(async (manager) => {
+      await manager.query(`SELECT pg_advisory_xact_lock(hashtext('conversations:' || $1))`, [
+        user.id,
+      ]);
+      const [{ total }] = await manager.query(
+        `SELECT count(*)::int AS total FROM conversations WHERE buyer_id = $1 AND created_at > now() - interval '1 day'`,
+        [user.id],
       );
-    }
-    const [created] = await this.dataSource.query(
-      `INSERT INTO conversations (ad_id, buyer_id, seller_id) VALUES ($1, $2, $3)
-       ON CONFLICT (ad_id, buyer_id) DO UPDATE SET ad_id = EXCLUDED.ad_id RETURNING id`,
-      [adId, user.id, ad.seller.id],
-    );
+      if (total >= limit) {
+        throw new HttpException(
+          "Você iniciou muitas conversas hoje. Tente de novo amanhã.",
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      const [row] = await manager.query(
+        `INSERT INTO conversations (ad_id, buyer_id, seller_id) VALUES ($1, $2, $3)
+         ON CONFLICT (ad_id, buyer_id) DO UPDATE SET ad_id = EXCLUDED.ad_id RETURNING id`,
+        [adId, user.id, ad.seller.id],
+      );
+      return row;
+    });
     return this.detail(user, created.id);
   }
 

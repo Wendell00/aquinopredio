@@ -117,6 +117,14 @@ export class Ad {
   @Column("integer")
   reportCount: number;
 
+  /** Conteúdo mudou enquanto pausado/expirado: modera de novo ao reativar. */
+  @Column("boolean")
+  needsModeration: boolean;
+
+  /** Ocultado por denúncias ou pelo admin do prédio: só o admin da plataforma libera. */
+  @Column("boolean")
+  manualReview: boolean;
+
   @OneToMany(
     () => AdImage,
     (image) => image.ad,

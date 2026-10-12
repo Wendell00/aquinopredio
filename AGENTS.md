@@ -37,9 +37,12 @@ apps/
     lib/                 # infraestrutura: api/client.ts (ky), query/, env.ts, cn.ts
     providers/           # providers client-side (Query, nuqs)
   api/src/
-    modules/<modulo>/    # controller, service, dto (zod), entities, *.spec.ts
-    common/              # pipes, guards, filtros, decorators reutilizáveis
+    <modulo>/            # um diretório por domínio: controller, service, entity, *.spec.ts
+                         # auth, users, buildings, building-admin, geo, ai, uploads, storage, ads,
+                         # feed, chat, notifications, admin, settings, audit
+    common/              # pipes, guards, middleware e decorators reutilizáveis
     config/              # env validado (zod) e config do banco
+    database/migrations/ # schema (registrar em index.ts)
 packages/
   shared/src/            # contratos compartilhados — fonte única dos schemas
   typescript-config/     # tsconfigs base

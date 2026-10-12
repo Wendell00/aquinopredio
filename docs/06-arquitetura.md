@@ -11,11 +11,11 @@
 | Backend API | NestJS 12 (REST), validação com Zod (`ZodValidationPipe`), helmet, rate limit | `apps/api` |
 | Tipos/contratos compartilhados | Schemas zod, enums (status, categorias) e constantes de regra | `packages/shared` |
 | Banco | PostgreSQL + PostGIS, ORM TypeORM (migrations fora de dev) | `apps/api` |
-| Filas / cache | Redis + BullMQ (moderação, validação de prédio, notificações) | |
-| Armazenamento de imagens | S3 compatível (S3, R2, Supabase Storage) + CDN, upload via URL pré-assinada | |
+| Filas / cache | Redis + BullMQ (validação de prédio, moderação) e cache de geocodificação | `apps/api` |
+| Armazenamento de imagens | S3 compatível (SeaweedFS em dev; S3/R2 em produção) + CDN. Upload passa pela API, que reprocessa a imagem (WebP, sem EXIF) | `apps/api/src/uploads` |
 | IA | OpenRouter (API compatível com OpenAI; SDK `openai` com `baseURL` do OpenRouter) | `apps/api/src/ai` |
-| Geolocalização | ViaCEP, Google Geocoding/Places ou Nominatim/OSM, mapa com Leaflet/MapLibre | |
-| Push | Web Push (VAPID) | |
+| Geolocalização | ViaCEP + Nominatim/Overpass (OpenStreetMap), mapa com Leaflet | `apps/api/src/geo` |
+| Push | Web Push (VAPID) + service worker próprio (`public/sw.js`) | `apps/api/src/notifications` |
 | Auth | **Better Auth** dentro da API: e-mail + senha (com confirmação de e-mail e recuperação) e Google. Sessões no banco, cookie `httpOnly` + `SameSite=Lax` | `apps/api/src/auth` |
 
 ## 6.2 Ferramentas de desenvolvimento
@@ -36,22 +36,37 @@ Modelo em `apps/api/.env.example` (copiar para `apps/api/.env` e preencher). O `
 | Variável | Descrição |
 |----------|-----------|
 | `DATABASE_URL` | Conexão PostgreSQL + PostGIS (a mesma usada no Beekeeper Studio) |
-| `OPENROUTER_API_KEY` | Chave do OpenRouter |
-| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` |
-| `OPENROUTER_SITE_URL` / `OPENROUTER_APP_NAME` | Identificação do app no OpenRouter |
-| `OPENROUTER_MODEL_AD_GENERATION` / `_BUILDING_VALIDATION` / `_MODERATION` | Modelo de cada tarefa (ver [Integração com IA](./04-integracao-ia.md)) |
-| `REDIS_URL` | Filas (BullMQ) |
-| `JWT_SECRET` / `JWT_REFRESH_SECRET` | Autenticação |
-| `STORAGE_*` | Bucket de imagens (S3/R2/Supabase) |
-| `GOOGLE_MAPS_API_KEY` | Geocoding/Places (opcional se usar Nominatim/OSM) |
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push (gerar com `npx web-push generate-vapid-keys`) |
-| `SMS_PROVIDER_*` | Confirmação de telefone (pode ficar para depois) |
+| `REDIS_URL` | Filas (BullMQ) e cache de geocodificação |
+| `APP_URL` / `WEB_ORIGIN` / `TRUSTED_PROXIES` | Origem pública do app, origens aceitas (CSRF/CORS) e proxies confiáveis (IP real no rate limit) |
+| `BETTER_AUTH_SECRET` | Segredo das sessões (mínimo 32 caracteres) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login com Google (opcional) |
+| `AUTH_CHECK_PWNED_PASSWORDS` | Bloqueia senhas vazadas (recomendado em produção) |
+| `SMTP_URL` / `MAIL_FROM` | Envio de e-mails (Mailpit em dev) |
+| `STORAGE_*` | Bucket S3 compatível e URL pública/CDN das imagens |
+| `GEO_USER_AGENT` / `NOMINATIM_URL` / `OVERPASS_URL` / `VIACEP_URL` | Geolocalização (OpenStreetMap) |
+| `OPENROUTER_API_KEY` / `OPENROUTER_MODEL_*` | IA (ver [Integração com IA](./04-integracao-ia.md)) |
+| `MODERATION_WITHOUT_AI` | `review` (padrão) ou `approve` (só dev) quando não há IA |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push (`pnpm --filter api exec web-push generate-vapid-keys`) |
+| `WORKERS_ENABLED` | Liga filas e jobs agendados no processo (desligue em réplicas só de HTTP) |
 
-No `apps/web`, somente variáveis públicas (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`) — nenhuma chave secreta.
+A lista completa, com padrões, está em `apps/api/src/config/env.ts`; a API não sobe com variável inválida.
+
+No `apps/web`: `API_INTERNAL_URL` (só no servidor, destino do proxy `/api`) e `NEXT_PUBLIC_STORAGE_URL` (origem pública das imagens). Nenhuma chave secreta vai para o navegador.
+
+## 6.3.1 Decisões de implementação do MVP
+
+| Tema | Decisão | Motivo |
+|------|---------|--------|
+| Chat | Polling (4 s com a conversa aberta, 15 s na lista) + Web Push | Simples, funciona atrás do proxy do Next e em qualquer hospedagem; trocar por SSE/WebSocket quando o volume pedir |
+| Upload | Multipart para a API, reprocessado com `sharp` | Garante remoção de EXIF/GPS e formato real no servidor (RNF-013, RN-132) sem depender do cliente |
+| Visibilidade | Uma única expressão SQL (RN-058) reutilizada no feed, detalhe e favoritos | Evita divergência entre telas; pré-filtro por raio máximo usa o índice GIST |
+| Distâncias | Arredondadas a 50 m nas respostas | Não revelar a posição exata de outro prédio (RN-034) |
+| Telefone | Opcional e não verificado (RN-002 adiada) | Sem provedor de SMS no MVP; o número só sai no link do WhatsApp gerado sob demanda |
+| Configuráveis | Tabela `settings` com padrões no código (`SettingsService`) e tela no painel | Itens `[configurável]` dos docs mudam sem deploy |
 
 ## 6.4 Módulos do backend (NestJS)
 
-`auth`, `users`, `buildings` (busca, criação, duplicidade, memberships), `verification` (pipeline de validação de prédio), `ads`, `ai` (geração, moderação, validação — prompts versionados), `feed`, `chat` (WebSocket/SSE), `favorites`, `reports`/`moderation`, `notifications`, `admin`, `settings`.
+Implementados em `apps/api/src`: `auth` (Better Auth + guard), `users` (perfil, conta/LGPD), `buildings` (busca, cadastro, duplicidade, vínculos, `verification/` em fila), `building-admin` (admin do prédio + jobs de manutenção), `geo`, `ai` (OpenRouter, prompts versionados em `ai/prompts/`), `uploads` + `storage`, `ads` (anúncios, rascunhos de IA, `moderation/` em fila, expiração), `feed` (feed, detalhe, favoritos, bloqueio, denúncias), `chat`, `notifications` (central + Web Push), `admin` (painel da plataforma, sanções), `settings`, `audit`.
 
 ## 6.5 Requisitos PWA
 

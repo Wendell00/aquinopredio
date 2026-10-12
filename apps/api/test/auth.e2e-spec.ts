@@ -115,4 +115,14 @@ describe("Autenticação (e2e)", () => {
     expect(statuses.slice(0, 5).every((status) => status === 401)).toBe(true);
     expect(statuses.at(-1)).toBe(429);
   });
+
+  it("rotas de perfil do Better Auth ficam desligadas (perfil só via /api/me)", async () => {
+    const { cookie } = await signUpAndLogin(app);
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/update-user")
+      .set("Cookie", cookie)
+      .set("Origin", ORIGIN)
+      .send({ name: "x", image: "https://rastreador.example/pixel.png" });
+    expect(res.status).toBe(404);
+  });
 });

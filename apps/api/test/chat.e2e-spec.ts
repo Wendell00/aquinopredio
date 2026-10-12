@@ -218,8 +218,15 @@ describe("Chat e notificações (e2e)", () => {
     expect((await api.get("/api/me/unread")).body.conversations).toBe(1);
   });
 
-  it("aceita inscrição de push só com endpoint HTTPS", async () => {
+  it("aceita push só de serviços conhecidos, com HTTPS (evita SSRF)", async () => {
     const api = as(app, buyer.cookie);
+    await api
+      .post("/api/push/subscriptions")
+      .send({
+        endpoint: "https://servidor-interno.local/push",
+        keys: { p256dh: "x".repeat(20), auth: "y".repeat(16) },
+      })
+      .expect(400);
     await api
       .post("/api/push/subscriptions")
       .send({
@@ -230,13 +237,13 @@ describe("Chat e notificações (e2e)", () => {
     await api
       .post("/api/push/subscriptions")
       .send({
-        endpoint: "https://push.example/abc",
+        endpoint: "https://fcm.googleapis.com/fcm/send/abc",
         keys: { p256dh: "x".repeat(20), auth: "y".repeat(16) },
       })
       .expect(204);
     await api
       .post("/api/push/subscriptions/remove")
-      .send({ endpoint: "https://push.example/abc" })
+      .send({ endpoint: "https://fcm.googleapis.com/fcm/send/abc" })
       .expect(204);
   });
 });

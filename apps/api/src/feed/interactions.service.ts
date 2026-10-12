@@ -117,7 +117,9 @@ export class InteractionsService {
              THEN 'em_moderacao'::ad_status ELSE status END,
            status_reason = CASE WHEN status = 'ativo' AND
              (SELECT count(DISTINCT reporter_id) FROM reports WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta') >= $2
-             THEN 'Ocultado após denúncias. Em revisão pela equipe.' ELSE status_reason END
+             THEN 'Ocultado após denúncias. Em revisão pela equipe.' ELSE status_reason END,
+           manual_review = manual_review OR (status = 'ativo' AND
+             (SELECT count(DISTINCT reporter_id) FROM reports WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta') >= $2)
          WHERE id = $1`,
         [input.targetId, threshold],
       );

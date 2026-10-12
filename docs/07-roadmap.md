@@ -1,6 +1,9 @@
 # 7. Roadmap
 
-## Fase 1 — MVP
+## Fase 1 — MVP (implementado em outubro/2026)
+
+Pendências conhecidas antes do lançamento: confirmação de telefone por SMS/WhatsApp (RN-002), selo por confirmação de vizinhos ou comprovante (RN-038 b/c), revalidação ao editar endereço do prédio (RN-032), contestação de sanção pelo app (RN-096, hoje via suporte), alertas de busca salvos (RN-076), resumo diário do prédio (RN-121), revisão jurídica dos Termos e da Política de Privacidade.
+
 - Cadastro/login, onboarding com vínculo obrigatório a prédio.
 - Busca de prédio (nome, CEP, "perto de mim") e criação com detecção de duplicidade.
 - Validação de prédio por IA + fila de revisão manual.

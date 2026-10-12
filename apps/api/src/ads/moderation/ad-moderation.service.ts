@@ -45,6 +45,8 @@ export class AdModerationService {
       relations: { category: true, images: { upload: true } },
     });
     if (ad?.status !== "em_moderacao") return null;
+    // Ocultado por denúncias/admin do prédio: só o admin da plataforma decide (RN-093, RN-094).
+    if (ad.manualReview) return "em_moderacao";
 
     const text = [ad.title, ad.description, ad.tags.join(" "), ad.availability ?? ""].join("\n");
     const local = moderateLocally(text);
@@ -137,8 +139,13 @@ export class AdModerationService {
       model: null,
       promptVersion: null,
     });
-    // Aprovar zera as denúncias abertas que ocultaram o anúncio.
-    if (decision === "aprovar") await this.ads.update(adId, { reportCount: 0 });
+    // A decisão humana encerra a revisão manual; aprovar zera as denúncias que ocultaram o anúncio.
+    await this.ads.update(adId, {
+      manualReview: false,
+      needsModeration: false,
+      ...(decision === "aprovar" ? { reportCount: 0 } : {}),
+    });
+    ad.manualReview = false;
     await this.apply(ad, decision === "aprovar" ? "ativo" : "removido", reason);
   }
 

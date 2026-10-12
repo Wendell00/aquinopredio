@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/features/auth/components/auth-shell";
 import { GoogleButton, OrDivider } from "@/features/auth/components/google-button";
 import { SignUpForm } from "@/features/auth/components/sign-up-form";
-import { getMe, getPublicConfig, homeFor } from "@/lib/session/get-me";
+import { getMeIfAvailable, getPublicConfig, homeFor } from "@/lib/session/get-me";
 
 export const metadata: Metadata = { title: "Criar conta — Aqui no Prédio" };
 
 export default async function SignUpPage(): Promise<React.JSX.Element> {
-  const me = await getMe();
+  const me = await getMeIfAvailable();
   if (me) redirect(homeFor(me));
   const { googleLogin } = await getPublicConfig();
 

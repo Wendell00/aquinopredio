@@ -1,7 +1,14 @@
-import { HttpException, HttpStatus, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { AdDraft, GenerateAdDraftInput, ImprovedText, ImproveTextInput } from "@repo/shared";
 import { generateAdDraftInputSchema, improveTextInputSchema } from "@repo/shared";
+import type { Redis } from "ioredis";
 import { Repository } from "typeorm";
 import { AiService, AiUnavailableError, delimit, type StructuredResult } from "../ai/ai.service";
 import {
@@ -13,6 +20,7 @@ import {
   adImproveOutputSchema,
   adImproveSystem,
 } from "../ai/prompts/ad-generation.prompt";
+import { REDIS } from "../redis/redis.module";
 import { SettingsService } from "../settings/settings.service";
 import { UploadsService } from "../uploads/uploads.service";
 import type { User } from "../users/user.entity";
@@ -28,6 +36,7 @@ export class AdDraftsService {
     private readonly ai: AiService,
     private readonly uploads: UploadsService,
     private readonly settings: SettingsService,
+    @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
   /** Gerações restantes hoje (RN-110). Gerar e melhorar contam no mesmo limite (RN-054). */
@@ -44,7 +53,18 @@ export class AdDraftsService {
   /** Rascunho a partir de texto livre e fotos (RN-053). Nunca publica sozinho. */
   async generate(user: User, rawInput: GenerateAdDraftInput): Promise<AdDraft> {
     const input = generateAdDraftInputSchema.parse(rawInput);
-    await this.assertQuota(user.id);
+    const release = await this.reserveQuota(user.id);
+    try {
+      return await this.generateReserved(user, input);
+    } finally {
+      await release();
+    }
+  }
+
+  private async generateReserved(
+    user: User,
+    input: ReturnType<typeof generateAdDraftInputSchema.parse>,
+  ): Promise<AdDraft> {
     const images = await this.uploads.claim(user.id, input.imageIds);
     const categories = await this.categories.find({
       where: { active: true },
@@ -111,7 +131,7 @@ export class AdDraftsService {
   /** "Melhorar texto com IA" em anúncio escrito à mão (RN-055). */
   async improve(user: User, rawInput: ImproveTextInput): Promise<ImprovedText> {
     const input = improveTextInputSchema.parse(rawInput);
-    await this.assertQuota(user.id);
+    const release = await this.reserveQuota(user.id);
     try {
       const result = await this.ai.structured({
         task: "ad_generation",
@@ -146,6 +166,8 @@ export class AdDraftsService {
       if (error instanceof AiUnavailableError)
         throw new ServiceUnavailableException(AI_UNAVAILABLE);
       throw error;
+    } finally {
+      await release();
     }
   }
 
@@ -154,13 +176,25 @@ export class AdDraftsService {
     return Boolean(result.affected);
   }
 
-  private async assertQuota(userId: string): Promise<void> {
+  /**
+   * Reserva uma geração antes de chamar a IA (RN-110). Gerações em andamento contam no limite,
+   * então disparar várias em paralelo não fura a cota. Devolve a função que libera a reserva.
+   */
+  private async reserveQuota(userId: string): Promise<() => Promise<void>> {
     if (!this.ai.enabled) throw new ServiceUnavailableException(AI_UNAVAILABLE);
-    if ((await this.remainingToday(userId)) <= 0) {
+    const key = `ai:inflight:${userId}`;
+    const inflight = await this.redis.incr(key);
+    await this.redis.expire(key, 120);
+    const release = async () => {
+      await this.redis.decr(key).catch(() => undefined);
+    };
+    if ((await this.remainingToday(userId)) - inflight < 0) {
+      await release();
       throw new HttpException(
         "Você usou todas as gerações com IA de hoje. Amanhã tem mais — ou crie o anúncio manualmente.",
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+    return release;
   }
 }

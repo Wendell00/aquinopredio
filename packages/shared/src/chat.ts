@@ -80,8 +80,15 @@ export const unreadCountsSchema = z.object({
 });
 export type UnreadCounts = z.infer<typeof unreadCountsSchema>;
 
+/** Serviços de push dos navegadores. Outros hosts são recusados (evita SSRF a partir da API). */
+export const PUSH_SERVICE_HOSTS =
+  /^(fcm\.googleapis\.com|([a-z0-9-]+\.)*push\.services\.mozilla\.com|([a-z0-9-]+\.)*notify\.windows\.com|web\.push\.apple\.com)$/;
+
 export const pushSubscriptionInputSchema = z.object({
-  endpoint: z.url().refine((url) => url.startsWith("https://"), "Endpoint precisa ser HTTPS"),
+  endpoint: z.url().refine((url) => {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && !parsed.port && PUSH_SERVICE_HOSTS.test(parsed.hostname);
+  }, "Serviço de push não suportado"),
   keys: z.object({ p256dh: z.string().min(10).max(200), auth: z.string().min(10).max(100) }),
 });
 export type PushSubscriptionInput = z.infer<typeof pushSubscriptionInputSchema>;

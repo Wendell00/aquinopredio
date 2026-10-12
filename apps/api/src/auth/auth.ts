@@ -47,6 +47,8 @@ export function createAuth({ env, pool, mail }: CreateAuthDeps) {
     database: pool,
     trustedOrigins: webOrigins(env),
     telemetry: { enabled: false },
+    // O perfil é alterado só por PATCH /api/me (validado pelo app). Exclusão de conta também é do app (RN-008).
+    disabledPaths: ["/update-user", "/delete-user", "/change-email"],
 
     emailAndPassword: {
       enabled: true,
