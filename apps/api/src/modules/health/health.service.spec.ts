@@ -1,6 +1,6 @@
-import { healthResponseSchema } from "@repo/shared";
 import { Logger } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
+import { healthResponseSchema } from "@repo/shared";
 import { DataSource } from "typeorm";
 import { HealthService } from "./health.service";
 

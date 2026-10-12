@@ -1,6 +1,6 @@
-import type { HealthResponse } from "@repo/shared";
 import { Controller, Get } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
+import type { HealthResponse } from "@repo/shared";
 import { HealthService } from "./health.service";
 
 @Controller("health")

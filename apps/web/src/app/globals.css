@@ -61,7 +61,9 @@
     *,
     *::before,
     *::after {
+      /* biome-ignore lint/complexity/noImportantStyles: precisa vencer qualquer animação dos utilitários */
       animation-duration: 0.01ms !important;
+      /* biome-ignore lint/complexity/noImportantStyles: idem */
       transition-duration: 0.01ms !important;
     }
   }

@@ -4,12 +4,13 @@
 
 | Camada | Tecnologia | Local no repo |
 |--------|-----------|---------------|
-| Frontend PWA | Next.js (App Router) + manifest + Service Worker (ex.: Serwist) | `apps/web` |
-| Estilos | **Tailwind CSS v4** em todo o front (tokens da marca no `@theme` de `app/globals.css`). Arquivos `.css` só quando necessário (tokens, keyframes, estilos base) — sem CSS Modules | `apps/web` |
-| Backend API | NestJS (REST), validação com `class-validator`/Zod | `apps/api` |
-| Componentes compartilhados | React | `packages/ui` |
-| Tipos/contratos compartilhados | DTOs e enums (status, categorias) | `packages/shared` (a criar) |
-| Banco | PostgreSQL + PostGIS (ORM: Prisma ou Drizzle) | |
+| Monorepo | pnpm 11 workspaces + Turborepo 2, Node 24 | raiz |
+| Frontend PWA | Next.js 16 (App Router) + React 19 + manifest + Service Worker (ex.: Serwist) | `apps/web` |
+| Estilos | **Tailwind CSS v4** em todo o front (tokens da marca no `@theme` de `src/app/globals.css`). Arquivos `.css` só quando necessário (tokens, keyframes, estilos base) — sem CSS Modules | `apps/web` |
+| Dados no front | TanStack Query v5 (cache/servidor) + ky (HTTP) + nuqs (estado na URL) | `apps/web/src/lib`, `src/features` |
+| Backend API | NestJS 12 (REST), validação com Zod (`ZodValidationPipe`), helmet, rate limit | `apps/api` |
+| Tipos/contratos compartilhados | Schemas zod, enums (status, categorias) e constantes de regra | `packages/shared` |
+| Banco | PostgreSQL + PostGIS, ORM TypeORM (migrations fora de dev) | `apps/api` |
 | Filas / cache | Redis + BullMQ (moderação, validação de prédio, notificações) | |
 | Armazenamento de imagens | S3 compatível (S3, R2, Supabase Storage) + CDN, upload via URL pré-assinada | |
 | IA | OpenRouter (API compatível com OpenAI; SDK `openai` com `baseURL` do OpenRouter) | `apps/api/src/ai` |
@@ -21,6 +22,9 @@
 
 | Ferramenta | Uso |
 |------------|-----|
+| **Biome** | Lint e formatação de todo o monorepo (`pnpm lint`, `pnpm lint:fix`) |
+| **Vitest / Jest** | Testes unitários (Vitest no web e no shared, Jest na API) e e2e da API com supertest |
+| **GitHub Actions** | CI em `.github/workflows/ci.yml`: Biome, typecheck, testes, build, `pnpm audit` e e2e com PostGIS. Dependabot semanal |
 | **Docker Compose** | Banco local PostgreSQL 16 + PostGIS 3.4: `docker compose up -d` na raiz do repo. Porta **5433** no host (usuário/senha/banco: `aquinopredio`). |
 | **Beekeeper Studio** | Cliente SQL para acessar o PostgreSQL/PostGIS (dev e produção, com conexão somente leitura em produção). Conectar usando os mesmos dados de `DATABASE_URL`. |
 | **OpenRouter (painel)** | Acompanhar consumo/custo por modelo, limite de crédito e configurações de privacidade. |

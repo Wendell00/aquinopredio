@@ -17,7 +17,7 @@ interface Example {
   };
 }
 
-const EXAMPLES: Example[] = [
+const EXAMPLES: [Example, ...Example[]] = [
   {
     label: "Bolo de pote",
     photo: "🍰",
@@ -82,8 +82,7 @@ const EXAMPLES: Example[] = [
 type Phase = "idle" | "loading" | "done";
 
 const panel = "rounded-card border border-line bg-cream p-6";
-const panelLabel =
-  "mb-3 text-[0.78rem] font-bold uppercase tracking-[0.06em] text-muted";
+const panelLabel = "mb-3 text-[0.78rem] font-bold uppercase tracking-[0.06em] text-muted";
 const note = "mt-3 text-[0.82rem] text-muted";
 
 const SKELETON = [
@@ -93,10 +92,10 @@ const SKELETON = [
   { id: "line2", size: "h-[18px]" },
 ];
 
-export function AiDemo(): JSX.Element {
+export function AiDemo(): React.JSX.Element {
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("idle");
-  const example = EXAMPLES[index] ?? EXAMPLES[0]!;
+  const example = EXAMPLES[index] ?? EXAMPLES[0];
 
   useEffect(() => {
     if (phase !== "loading") return;
@@ -151,9 +150,7 @@ export function AiDemo(): JSX.Element {
         >
           {phase === "loading" ? "Criando anúncio…" : "✨ Criar anúncio com IA"}
         </button>
-        <p className={note}>
-          Simulação. No app, a IA usa o seu texto e as suas fotos de verdade.
-        </p>
+        <p className={note}>Simulação. No app, a IA usa o seu texto e as suas fotos de verdade.</p>
       </div>
 
       <div aria-live="polite" className={panel}>
@@ -191,9 +188,7 @@ export function AiDemo(): JSX.Element {
                   </span>
                 ))}
               </div>
-              <h3 className="my-2 text-lg font-bold leading-tight">
-                {example.output.title}
-              </h3>
+              <h3 className="my-2 text-lg font-bold leading-tight">{example.output.title}</h3>
               <p className="text-[0.95rem] text-ink-soft">{example.output.description}</p>
               <p className="mt-2.5 text-lg font-extrabold text-brand-dark">
                 {example.output.price}
@@ -205,14 +200,12 @@ export function AiDemo(): JSX.Element {
               </div>
               {example.output.confirm ? (
                 <p className="mt-3 rounded-[10px] bg-warn-soft px-3 py-2 text-sm text-warn">
-                  ⚠️ Confirme: {example.output.confirm.toLowerCase()} (a IA não
-                  inventa o que você não informou)
+                  ⚠️ Confirme: {example.output.confirm.toLowerCase()} (a IA não inventa o que você
+                  não informou)
                 </p>
               ) : null}
               <div className="mt-4 flex gap-2 text-center text-[0.88rem] font-bold">
-                <span className="flex-1 rounded-full border-[1.5px] border-line p-2.5">
-                  Editar
-                </span>
+                <span className="flex-1 rounded-full border-[1.5px] border-line p-2.5">Editar</span>
                 <span className="flex-1 rounded-full bg-ink p-2.5 text-white">
                   Revisar e publicar
                 </span>

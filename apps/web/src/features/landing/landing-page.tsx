@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AiDemo } from "./_components/ai-demo";
-import { RadiusDemo } from "./_components/radius-demo";
+import { AiDemo } from "./components/ai-demo";
+import { RadiusDemo } from "./components/radius-demo";
 
 // Rota de entrada na plataforma (cadastro/login + localizar prédio).
 const APP_URL = "/entrar";
@@ -10,8 +10,7 @@ const container = "mx-auto w-full max-w-[1120px] px-5";
 const btnBase =
   "inline-flex min-h-13 items-center justify-center rounded-full px-7 font-bold transition";
 const btnPrimary = `${btnBase} bg-brand text-white shadow-brand hover:-translate-y-px hover:bg-brand-dark`;
-const eyebrow =
-  "mb-3 inline-block text-sm font-bold uppercase tracking-[0.06em] text-brand-dark";
+const eyebrow = "mb-3 inline-block text-sm font-bold uppercase tracking-[0.06em] text-brand-dark";
 const sectionTitle =
   "max-w-[40rem] text-[clamp(1.7rem,4vw,2.5rem)] font-extrabold leading-[1.15] tracking-[-0.03em]";
 const sectionSub = "mt-3.5 max-w-[38rem] text-[1.08rem] text-ink-soft";
@@ -142,7 +141,7 @@ const FAQ = [
   },
 ];
 
-export default function Page(): JSX.Element {
+export function LandingPage(): React.JSX.Element {
   return (
     <>
       <header className="sticky top-0 z-20 border-b border-line bg-cream/90 backdrop-blur-md">
@@ -193,9 +192,8 @@ export default function Page(): JSX.Element {
                 de distância.
               </h1>
               <p className="mt-5 max-w-[34rem] text-lg text-ink-soft">
-                Encontre e divulgue serviços e produtos no seu prédio e nos
-                prédios vizinhos. Escreva do seu jeito e a IA monta o anúncio
-                para você.
+                Encontre e divulgue serviços e produtos no seu prédio e nos prédios vizinhos.
+                Escreva do seu jeito e a IA monta o anúncio para você.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link className={btnPrimary} href={APP_URL}>
@@ -229,7 +227,10 @@ export default function Page(): JSX.Element {
                     Tudo
                   </span>
                   {["Alimentação", "Beleza", "Aulas"].map((c) => (
-                    <span className="rounded-full border border-line bg-white px-2.5 py-0.5" key={c}>
+                    <span
+                      className="rounded-full border border-line bg-white px-2.5 py-0.5"
+                      key={c}
+                    >
                       {c}
                     </span>
                   ))}
@@ -269,8 +270,8 @@ export default function Page(): JSX.Element {
           <div className={container}>
             <h2 className={sectionTitle}>Grupo do condomínio não é vitrine.</h2>
             <p className={sectionSub}>
-              A indicação boa some entre bom-dias, avisos da portaria e
-              discussões sobre a vaga de garagem. Aqui ela fica organizada.
+              A indicação boa some entre bom-dias, avisos da portaria e discussões sobre a vaga de
+              garagem. Aqui ela fica organizada.
             </p>
             <div className="mt-9 grid gap-4 md:grid-cols-2">
               <div className="rounded-card bg-sand p-7 text-ink-soft">
@@ -307,12 +308,10 @@ export default function Page(): JSX.Element {
         <section className="border-y border-line bg-white py-18" id="demo-ia">
           <div className={container}>
             <p className={eyebrow}>Experimente</p>
-            <h2 className={sectionTitle}>
-              Você escreve como fala. A IA escreve como anúncio.
-            </h2>
+            <h2 className={sectionTitle}>Você escreve como fala. A IA escreve como anúncio.</h2>
             <p className={sectionSub}>
-              Escolha um exemplo e veja o que acontece quando um morador manda
-              uma mensagem rápida com foto.
+              Escolha um exemplo e veja o que acontece quando um morador manda uma mensagem rápida
+              com foto.
             </p>
             <AiDemo />
           </div>
@@ -322,12 +321,10 @@ export default function Page(): JSX.Element {
         <section className="py-18">
           <div className={container}>
             <p className={eyebrow}>Alcance</p>
-            <h2 className={sectionTitle}>
-              Do seu andar para o bairro inteiro, só se você quiser.
-            </h2>
+            <h2 className={sectionTitle}>Do seu andar para o bairro inteiro, só se você quiser.</h2>
             <p className={sectionSub}>
-              Cada anúncio tem um raio. Arraste e veja quais prédios passam a
-              enxergar o seu anúncio.
+              Cada anúncio tem um raio. Arraste e veja quais prédios passam a enxergar o seu
+              anúncio.
             </p>
             <RadiusDemo />
           </div>
@@ -395,10 +392,7 @@ export default function Page(): JSX.Element {
             <h2 className={sectionTitle}>Perguntas frequentes</h2>
             <div className="grid gap-2.5">
               {FAQ.map((item) => (
-                <details
-                  className="group rounded-[14px] border border-line bg-white"
-                  key={item.q}
-                >
+                <details className="group rounded-[14px] border border-line bg-white" key={item.q}>
                   <summary className="relative cursor-pointer list-none py-[18px] pl-5 pr-12 font-semibold [&::-webkit-details-marker]:hidden">
                     {item.q}
                     <span
@@ -422,8 +416,8 @@ export default function Page(): JSX.Element {
               Seu prédio já pode estar aqui.
             </h2>
             <p className="mx-auto mb-8 mt-4 max-w-[32rem] text-lg opacity-90">
-              Procure pelo nome ou CEP. Se ainda não estiver, você cadastra em
-              um minuto e é o primeiro a anunciar.
+              Procure pelo nome ou CEP. Se ainda não estiver, você cadastra em um minuto e é o
+              primeiro a anunciar.
             </p>
             <Link
               className={`${btnBase} bg-white text-brand-dark hover:-translate-y-px hover:shadow-[0_10px_24px_rgba(0,0,0,0.15)]`}
@@ -440,12 +434,7 @@ export default function Page(): JSX.Element {
 
       <footer className="border-t border-line pb-28 pt-8 text-sm text-ink-soft lg:pb-8">
         <div className={`${container} flex flex-wrap items-center justify-between gap-x-8 gap-y-4`}>
-          <Image
-            alt="Aqui no Prédio"
-            height={40}
-            src="/logo-horizontal.png"
-            width={102}
-          />
+          <Image alt="Aqui no Prédio" height={40} src="/logo-horizontal.png" width={102} />
           <nav aria-label="Links legais" className="flex gap-5">
             <Link className="hover:text-brand" href="/termos">
               Termos de uso
@@ -478,7 +467,7 @@ function BenefitCard({
   title: string;
   items: string[][];
   tone: string;
-}): JSX.Element {
+}): React.JSX.Element {
   return (
     <div className={`rounded-card p-8 ${tone}`}>
       <span className="text-[0.8rem] font-bold uppercase tracking-[0.06em] text-ink-soft">

@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancela execuções antigas do mesmo branch/PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Menor privilégio: o workflow só lê o repositório.
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  quality:
+    name: Lint, tipos, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Actions fixadas por SHA do commit (proteção de supply chain). O Dependabot atualiza.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint e formatação (Biome)
+        run: pnpm exec biome ci .
+
+      - name: Typecheck
+        run: pnpm turbo typecheck
+
+      - name: Testes unitários
+        run: pnpm turbo test
+
+      - name: Build
+        run: pnpm turbo build
+
+      - name: Auditoria de dependências
+        run: pnpm audit --prod --audit-level high
+
+  e2e:
+    name: Testes e2e da API
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: aquinopredio
+          POSTGRES_PASSWORD: aquinopredio
+          POSTGRES_DB: aquinopredio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aquinopredio -d aquinopredio"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://aquinopredio:aquinopredio@localhost:5432/aquinopredio
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo test:e2e

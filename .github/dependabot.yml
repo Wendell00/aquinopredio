@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Só sugere versões publicadas há pelo menos 14 dias.
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 10
+    groups:
+      nestjs:
+        patterns: ["@nestjs/*"]
+      tanstack:
+        patterns: ["@tanstack/*"]
+      testing:
+        patterns: ["vitest", "@vitest/*", "@testing-library/*", "jest", "ts-jest", "@types/jest", "jsdom"]
+      next-react:
+        patterns: ["next", "react", "react-dom", "@types/react", "@types/react-dom"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14

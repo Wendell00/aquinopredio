@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { Providers } from "./providers";
+import { Providers } from "@/providers/providers";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -22,11 +22,7 @@ export const viewport: Viewport = {
   themeColor: "#D63700",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}): JSX.Element {
+export default function RootLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <html lang="pt-BR">
       <body className={jakarta.className}>

@@ -1,5 +1,5 @@
-import type { HealthResponse } from "@repo/shared";
 import { Injectable, Logger } from "@nestjs/common";
+import type { HealthResponse } from "@repo/shared";
 import { DataSource } from "typeorm";
 
 @Injectable()

@@ -1,88 +1,41 @@
-# NestJS / Next.js Turborepo starter
+# Aqui no Prédio
 
-This is an unofficial starter Turborepo.
+PWA para moradores divulgarem serviços e produtos no próprio prédio e nos prédios vizinhos, com anúncios gerados por IA.
 
-## What's inside?
+- Produto, regras de negócio e arquitetura: [`docs/`](./docs/README.md)
+- Convenções de código, estrutura e segurança: [`AGENTS.md`](./AGENTS.md)
 
-This Turborepo includes the following packages/apps:
+## Requisitos
 
-### Apps and Packages
+- Node 24 (`nvm use`) e pnpm 11 (`corepack enable` ou `npm i -g pnpm@11`)
+- Docker (Postgres + PostGIS local)
 
-- `api`: a [NestJS](https://nestjs.com/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `ui`: a stub React component library shared by both `web` and `docs` applications
-- `eslint-config-custom`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `tsconfig`: `tsconfig.json`s used throughout the monorepo
+## Começando
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Installation
-
-```
-git clone https://github.com/mantaskaveckas/nestjs-turbo
-cd nestjs-turbo
+```bash
 pnpm install
+pnpm db:up                                  # banco na porta 5433
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env.local
+pnpm dev                                    # web http://localhost:3000 · api http://localhost:3001/api/health
 ```
 
-_Hint: If you'd like to clone the repository without the git history, you can use [degit](https://github.com/Rich-Harris/degit)._
+## Scripts
 
-### Build
+| Comando | O que faz |
+|---------|-----------|
+| `pnpm dev` | Sobe web, api e o watch do `@repo/shared` |
+| `pnpm check` | Biome + typecheck + testes unitários (o mesmo que o CI) |
+| `pnpm lint:fix` | Corrige lint e formatação |
+| `pnpm test` / `pnpm test:e2e` | Testes unitários / e2e da API |
+| `pnpm build` | Build de produção |
+| `pnpm db:up` / `pnpm db:down` | Liga/desliga o banco local |
 
-To build all apps and packages, run the following command:
-
-```
-cd nestjs-turbo
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
+## Estrutura
 
 ```
-cd nestjs-turbo
-pnpm dev
+apps/web            Next.js 16 (App Router), Tailwind v4, TanStack Query, ky, nuqs
+apps/api            NestJS 12, TypeORM, PostgreSQL/PostGIS
+packages/shared     Schemas zod e regras compartilhadas entre web e api
+packages/typescript-config
 ```
-
-### Remote Caching
-
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
-
-```
-cd my-turborepo
-npx nestjs-turbo
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
-
-Learn more about NestJS & Next.js:
-
-- [NestJS Documentation](https://docs.nestjs.com/)
-- [Next.js Documentation](https://nextjs.org/docs)

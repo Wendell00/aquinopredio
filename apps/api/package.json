@@ -10,10 +10,10 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:cov": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "12.1.1",
@@ -37,7 +37,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
-    "@types/node": "22.20.5",
+    "@types/node": "24.19.0",
     "@types/supertest": "7.2.1",
     "jest": "30.5.2",
     "source-map-support": "0.5.21",
@@ -46,13 +46,26 @@
     "typescript": "6.0.3"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/../tsconfig.json" }]
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/../tsconfig.json"
+        }
+      ]
     },
-    "collectCoverageFrom": ["**/*.ts", "!main.ts", "!**/*.module.ts"],
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!main.ts",
+      "!**/*.module.ts"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }

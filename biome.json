@@ -1,0 +1,57 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/.next",
+      "!**/coverage",
+      "!**/next-env.d.ts",
+      "!pnpm-lock.yaml",
+      "!.claude"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "double", "semicolons": "always", "trailingCommas": "all" },
+    "parser": { "unsafeParameterDecoratorsEnabled": true }
+  },
+  "css": {
+    "parser": { "tailwindDirectives": true }
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "domains": { "next": "recommended", "react": "recommended", "test": "recommended" },
+    "rules": {
+      "preset": "recommended",
+      "complexity": { "noExcessiveCognitiveComplexity": "warn" },
+      "correctness": { "noUnusedImports": "error", "noUnusedVariables": "error" },
+      "style": {
+        "noNonNullAssertion": "error",
+        "useImportType": "error",
+        "useConst": "error"
+      },
+      "suspicious": { "noConsole": { "level": "warn", "options": { "allow": ["warn", "error"] } } },
+      "security": { "noDangerouslySetInnerHtml": "error" }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/api/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
+    }
+  ]
+}

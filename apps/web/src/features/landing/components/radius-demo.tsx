@@ -17,8 +17,7 @@ const NEIGHBORS = [
   { name: "Cond. Serra Azul", km: 4.4, angle: 180 },
 ];
 
-const chip =
-  "rounded-full bg-leaf-soft px-2.5 py-1 text-[0.82rem] font-semibold text-leaf";
+const chip = "rounded-full bg-leaf-soft px-2.5 py-1 text-[0.82rem] font-semibold text-leaf";
 
 const SIZE = 340;
 const CENTER = SIZE / 2;
@@ -29,7 +28,7 @@ function label(km: number): string {
   return `${km.toLocaleString("pt-BR")} km`;
 }
 
-export function RadiusDemo(): JSX.Element {
+export function RadiusDemo(): React.JSX.Element {
   const [step, setStep] = useState(2);
   const radius = RADII[step] ?? 0;
   const visible = NEIGHBORS.filter((n) => n.km <= radius).length;
@@ -88,7 +87,9 @@ export function RadiusDemo(): JSX.Element {
       </div>
 
       <div className="rounded-card border border-line bg-cream p-6">
-        <p className="mb-3 text-[0.78rem] font-bold uppercase tracking-[0.06em] text-muted">Raio do anúncio</p>
+        <p className="mb-3 text-[0.78rem] font-bold uppercase tracking-[0.06em] text-muted">
+          Raio do anúncio
+        </p>
         <p className="text-[2rem] font-extrabold tracking-[-0.02em]">{label(radius)}</p>
         <input
           aria-label="Raio do anúncio"
@@ -109,8 +110,8 @@ export function RadiusDemo(): JSX.Element {
           ))}
         </div>
         <p className="mt-5 text-[1.05rem]">
-          <strong className="text-[1.3rem] text-leaf">{visible + 1}</strong> {visible === 0 ? "prédio vê" : "prédios veem"} o
-          seu anúncio
+          <strong className="text-[1.3rem] text-leaf">{visible + 1}</strong>{" "}
+          {visible === 0 ? "prédio vê" : "prédios veem"} o seu anúncio
         </p>
         <ul className="mt-3 flex flex-wrap gap-1.5">
           <li className={chip}>🏠 Seu prédio</li>

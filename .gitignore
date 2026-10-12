@@ -59,3 +59,9 @@ coverage
 
 # Agentes (configurações locais)
 .claude/settings.local.json
+
+# TypeScript incremental
+*.tsbuildinfo
+
+# Next.js (gerado)
+next-env.d.ts
