@@ -6,6 +6,12 @@
   "setupFiles": ["<rootDir>/support/setup-env.ts"],
   "testTimeout": 30000,
   "transform": {
-    "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/../tsconfig.json" }]
-  }
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/../tsconfig.json"
+      }
+    ]
+  },
+  "globalSetup": "<rootDir>/support/global-setup.ts"
 }

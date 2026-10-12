@@ -43,8 +43,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pasta de build separada permite rodar uma segunda instância (testes) sem tocar no .next do `pnpm dev`.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   poweredByHeader: false,
   images: {
+    // Em dev o storage é localhost; o Next 16 bloqueia otimizar imagens de IP local (SSRF).
+    // Em produção as imagens vêm de CDN pública e a proteção fica ligada.
+    dangerouslyAllowLocalIP: isDev,
     remotePatterns: [
       new URL(`${storagePublicUrl}/**`),
       new URL("https://lh3.googleusercontent.com/**"),

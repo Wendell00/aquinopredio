@@ -5,6 +5,7 @@ import request from "supertest";
 import { DataSource } from "typeorm";
 import { AppModule } from "../../src/app.module";
 import { setupApp } from "../../src/app.setup";
+import { buildingInput } from "./fakes";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -106,4 +107,19 @@ export async function onboardedProfile(app: INestApplication, name = "Vizinha Te
     .send({ name, acceptTerms: true, isAdult: true })
     .expect(201);
   return session;
+}
+
+/** Morador com prédio cadastrado (prédio fica `pendente_validacao`: só raio 0). */
+export async function resident(
+  app: INestApplication,
+  overrides: Record<string, unknown> = {},
+  name = "Morador Teste",
+) {
+  const session = await onboardedProfile(app, name);
+  const created = await as(app, session.cookie)
+    .post("/api/buildings")
+    .send(buildingInput(overrides));
+  if (created.status !== 201)
+    throw new Error(`prédio: ${created.status} ${JSON.stringify(created.body)}`);
+  return { ...session, buildingId: created.body.building.building.id as string };
 }

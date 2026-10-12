@@ -2,8 +2,10 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { AdsModule } from "./ads/ads.module";
 import { AiModule } from "./ai/ai.module";
 import { AuthGuard } from "./auth/auth.guard";
 import { AuthModule } from "./auth/auth.module";
@@ -16,6 +18,8 @@ import { MailModule } from "./mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
 import { RedisModule } from "./redis/redis.module";
 import { SettingsModule } from "./settings/settings.module";
+import { StorageModule } from "./storage/storage.module";
+import { UploadsModule } from "./uploads/uploads.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({
@@ -41,7 +45,10 @@ import { UsersModule } from "./users/users.module";
         prefix: "anp",
       }),
     }),
+    ScheduleModule.forRoot(),
     RedisModule,
+    StorageModule,
+    UploadsModule,
     SettingsModule,
     AiModule,
     MailModule,
@@ -50,6 +57,7 @@ import { UsersModule } from "./users/users.module";
     UsersModule,
     GeoModule,
     BuildingsModule,
+    AdsModule,
   ],
   // Ordem importa: primeiro a sessão (AuthGuard), depois o rate limit por usuário.
   providers: [
