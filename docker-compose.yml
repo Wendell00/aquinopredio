@@ -18,5 +18,45 @@ services:
       timeout: 5s
       retries: 10
 
+  # Filas (BullMQ): validação de prédio e moderação
+  redis:
+    image: redis:7.4-alpine
+    container_name: aquinopredio-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Armazenamento de imagens compatível com S3 (SeaweedFS). Credenciais só de dev em infra/seaweedfs/s3.json;
+  # leitura anônima apenas no bucket de imagens (objetos com nome aleatório).
+  storage:
+    image: chrislusf/seaweedfs:3.97
+    container_name: aquinopredio-storage
+    restart: unless-stopped
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json", "-volume.max=5"]
+    ports:
+      - "8333:8333"
+    volumes:
+      - storage-data:/data
+      - ./infra/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
+  # Captura os e-mails enviados em dev (interface em http://localhost:8025)
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: aquinopredio-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   db-data:
+  redis-data:
+  storage-data:

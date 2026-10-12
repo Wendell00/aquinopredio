@@ -12,15 +12,21 @@
     "test:cov": "vitest run --coverage"
   },
   "dependencies": {
+    "@hookform/resolvers": "5.9.1",
     "@repo/shared": "workspace:*",
     "@tanstack/react-query": "5.104.0",
     "@tanstack/react-query-devtools": "5.104.0",
+    "better-auth": "1.7.6",
     "clsx": "2.1.1",
     "ky": "2.1.0",
+    "lucide-react": "1.48.0",
     "next": "16.3.8",
     "nuqs": "2.10.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-hook-form": "7.89.0",
+    "server-only": "0.0.1",
+    "sonner": "2.0.8",
     "tailwind-merge": "3.7.0",
     "zod": "4.6.5"
   },

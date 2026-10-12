@@ -1,5 +1,5 @@
 import ky, { isHTTPError } from "ky";
-import { env } from "@/lib/env";
+import { API_BASE_PATH } from "@/lib/env";
 
 /** Erro normalizado da API, com o status HTTP e a mensagem do backend quando houver. */
 export class ApiError extends Error {
@@ -7,6 +7,8 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly details?: unknown,
+    /** Código de erro da API (ex.: `ONBOARDING_REQUIRED`). */
+    readonly code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -14,7 +16,7 @@ export class ApiError extends Error {
 }
 
 export const api = ky.create({
-  prefix: env.NEXT_PUBLIC_API_URL,
+  prefix: API_BASE_PATH,
   credentials: "include",
   timeout: 10_000,
   retry: { limit: 2, methods: ["get"] },
@@ -30,7 +32,14 @@ export const api = ky.create({
           typeof body.message === "string"
             ? body.message
             : error.message;
-        return new ApiError(message, error.response.status, body);
+        const code =
+          typeof body === "object" &&
+          body !== null &&
+          "code" in body &&
+          typeof body.code === "string"
+            ? body.code
+            : undefined;
+        return new ApiError(message, error.response.status, body, code);
       },
     ],
   },

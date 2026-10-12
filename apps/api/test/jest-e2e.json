@@ -3,6 +3,8 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "setupFiles": ["<rootDir>/support/setup-env.ts"],
+  "testTimeout": 30000,
   "transform": {
     "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/../tsconfig.json" }]
   }

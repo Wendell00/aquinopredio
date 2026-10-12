@@ -16,7 +16,7 @@
 | IA | OpenRouter (API compatível com OpenAI; SDK `openai` com `baseURL` do OpenRouter) | `apps/api/src/ai` |
 | Geolocalização | ViaCEP, Google Geocoding/Places ou Nominatim/OSM, mapa com Leaflet/MapLibre | |
 | Push | Web Push (VAPID) | |
-| Auth | JWT (access curto + refresh httpOnly) ou provedor (Auth.js / Supabase Auth) | |
+| Auth | **Better Auth** dentro da API: e-mail + senha (com confirmação de e-mail e recuperação) e Google. Sessões no banco, cookie `httpOnly` + `SameSite=Lax` | `apps/api/src/auth` |
 
 ## 6.2 Ferramentas de desenvolvimento
 
@@ -70,6 +70,18 @@ No `apps/web`, somente variáveis públicas (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC
 - **RNF-013** — Upload apenas por URL pré-assinada com tipo e tamanho restritos; imagens reprocessadas no servidor.
 - **RNF-014** — Proteção contra prompt injection: entradas do usuário sempre delimitadas no prompt e saída validada por schema.
 - **RNF-015** — Logs de auditoria para ações de moderação e administração.
+
+### Autenticação (implementado)
+
+- O navegador só fala com o Next; `/api/*` é repassado para a API (mesma origem). Sem token no `localStorage`, sem CORS entre domínios.
+- Sessão opaca no banco (`sessions`), 30 dias, renovada a cada 24 h; ações sensíveis exigem login nos últimos 15 min. Logout e troca de senha revogam sessões.
+- Senha: mínimo 10 caracteres, hash `scrypt` do Better Auth; opcionalmente bloqueio de senhas vazadas (`AUTH_CHECK_PWNED_PASSWORDS`).
+- E-mail precisa ser confirmado antes do primeiro login. Recuperação de senha não revela se o e-mail existe.
+- Rate limit no banco: login 5/min, cadastro e recuperação 5/h por IP (IP real só via `TRUSTED_PROXIES`).
+- CSRF: checagem de `Origin` em toda requisição que altera estado (inclusive login) + cookies `SameSite=Lax`.
+- Tokens OAuth criptografados no banco; Google só vincula conta pelo e-mail porque o provedor o confirma.
+- Contas banidas/excluídas não abrem sessão; e-mails banidos ficam como hash em `banned_identities` (RN-009).
+- Guard global na API: toda rota exige sessão, exceto `@Public()`; quem não concluiu o onboarding só acessa rotas `@AllowOnboarding()` (RN-005).
 
 ## 6.7 LGPD
 

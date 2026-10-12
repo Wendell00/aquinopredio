@@ -1,0 +1,13 @@
+{
+  "identities": [
+    {
+      "name": "api",
+      "credentials": [{ "accessKey": "aquinopredio", "secretKey": "aquinopredio-dev" }],
+      "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+    },
+    {
+      "name": "anonymous",
+      "actions": ["Read:aquinopredio"]
+    }
+  ]
+}

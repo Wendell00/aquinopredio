@@ -17,7 +17,7 @@ Guia de convenções para pessoas e agentes de IA que trabalham neste repositór
 ```bash
 nvm use                 # Node 24
 pnpm install
-pnpm db:up              # Postgres + PostGIS no Docker (porta 5433)
+pnpm db:up              # Postgres/PostGIS (5433), Redis (6380), SeaweedFS S3 (8333), Mailpit (8025)
 pnpm dev                # web :3000 + api :3001
 pnpm check              # Biome + typecheck + testes — rode antes de abrir PR
 pnpm lint:fix           # corrige lint/format
@@ -63,6 +63,14 @@ packages/
 - Estado local só para UI efêmera. Não adicione store global sem necessidade clara.
 - Erros HTTP chegam como `ApiError` (status + mensagem do backend).
 - **Imagens** via `next/image`; acessibilidade WCAG 2.1 AA (RNF-006): `alt`, labels, foco visível, contraste.
+
+## Autenticação
+
+- **Better Auth** montado na API em `/api/auth` (`src/auth/auth.ts`). Ele é dono de `users` (colunas de identidade), `sessions`, `accounts`, `verifications` e `rate_limits`; as colunas do app em `users` (status, papel, prédio principal) são lidas via TypeORM (`UsersService`).
+- O schema vem das **migrations do repo** (não use `npx auth migrate`). Ao mudar campos/plugins do Better Auth, gere o SQL com `getMigrations` e escreva uma migration.
+- Rotas novas são protegidas por padrão (guard global). Use `@Public()`, `@AllowOnboarding()` e `@Roles("platform_admin")` explicitamente, e `@CurrentUser()` para obter o usuário.
+- No front, login/cadastro usam `authClient` (`@/lib/auth/auth-client`); dados do usuário vêm de `/api/me`. Páginas protegidas: `proxy.ts` faz a checagem otimista e o layout valida com `getMe()`.
+- Redirecionamentos com `?next=` passam sempre por `safeNextPath`.
 
 ## API (`apps/api`)
 
@@ -115,6 +123,10 @@ Skills de terceiros em `.claude/skills/` (cada uma tem `SOURCE.md` com origem e 
 | `security-best-practices` | Revisão de segurança (Next, React, Express) | — |
 | `github-actions-hardening`, `github-actions-efficiency` | Mudanças no CI | — |
 | `landing-page` | Landing page e copy | — |
+| `better-auth-best-practices`, `better-auth-security-best-practices`, `email-and-password-best-practices` | Configuração e segurança do Better Auth | `npx auth@latest …` e MCP — o schema é criado pelas migrations TypeORM do repo |
+| `frontend-design`, `web-design-guidelines`, `wcag-audit-patterns` | Qualidade visual, UX e acessibilidade | Regras de tipografia em inglês (Title Case, aspas inglesas) — a UI é em PT-BR |
+| `react-hook-form` | Formulários (com `zodResolver` e os schemas do `shared`) | — |
+| `supabase-postgres-best-practices`, `postgis` | Índices, queries, consultas por raio | Partes de RLS/Supabase; colunas `geography(Point,4326)` são a escolha do projeto |
 
 Sem skill (use a doc oficial): ky, Biome.
 

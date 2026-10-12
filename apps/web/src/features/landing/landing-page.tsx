@@ -4,7 +4,7 @@ import { AiDemo } from "./components/ai-demo";
 import { RadiusDemo } from "./components/radius-demo";
 
 // Rota de entrada na plataforma (cadastro/login + localizar prédio).
-const APP_URL = "/entrar";
+const APP_URL = "/cadastro";
 
 const container = "mx-auto w-full max-w-[1120px] px-5";
 const btnBase =
@@ -171,7 +171,7 @@ export function LandingPage(): React.JSX.Element {
           </nav>
           <Link
             className="ml-auto rounded-full border-[1.5px] border-ink px-[18px] py-2 text-[0.95rem] font-semibold transition hover:bg-ink hover:text-white lg:ml-0"
-            href={APP_URL}
+            href="/entrar"
           >
             Entrar
           </Link>

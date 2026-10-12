@@ -1,17 +1,12 @@
 import type { INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
 import request from "supertest";
-import { AppModule } from "../src/app.module";
-import { setupApp } from "../src/app.setup";
+import { createTestApp } from "./support/app";
 
 describe("Health (e2e)", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    setupApp(app);
-    await app.init();
+    app = await createTestApp();
   });
 
   afterAll(async () => {

@@ -1,13 +1,5 @@
-import { z } from "zod";
-
 /**
- * Variáveis públicas do front. O Next só injeta `NEXT_PUBLIC_*` quando acessadas
- * de forma literal, por isso cada uma é lida explicitamente aqui.
+ * O navegador acessa a API pelo proxy `/api` do Next (mesma origem): cookies de sessão
+ * `httpOnly` + `SameSite=Lax` funcionam sem CORS. No servidor, use `@/lib/api/server`.
  */
-const publicEnvSchema = z.object({
-  NEXT_PUBLIC_API_URL: z.url().default("http://localhost:3001/api"),
-});
-
-export const env = publicEnvSchema.parse({
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-});
+export const API_BASE_PATH = "/api";

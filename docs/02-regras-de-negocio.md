@@ -6,8 +6,8 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 
 ## 2.1 Conta e autenticação (RN-001 a RN-019)
 
-- **RN-001** — O cadastro pode ser feito por e-mail + senha, link mágico por e-mail ou login social (Google/Apple).
-- **RN-002** — O telefone (celular) é obrigatório e deve ser confirmado por código (SMS ou WhatsApp) antes de publicar o primeiro anúncio. Navegar e conversar não exige telefone confirmado.
+- **RN-001** — O cadastro pode ser feito por e-mail + senha, link mágico por e-mail ou login social (Google/Apple). *No MVP atual: e-mail + senha e Google.*
+- **RN-002** — *(adiada no MVP atual: o telefone é opcional e não é confirmado por código; a exigência volta quando houver provedor de SMS/WhatsApp.)* O telefone (celular) é obrigatório e deve ser confirmado por código (SMS ou WhatsApp) antes de publicar o primeiro anúncio. Navegar e conversar não exige telefone confirmado.
 - **RN-003** — Um telefone e um e-mail só podem estar associados a uma conta.
 - **RN-004** — O usuário deve ter **18 anos ou mais** (declaração no cadastro + aceite dos Termos de Uso e Política de Privacidade).
 - **RN-005** — **O cadastro só é concluído após o vínculo com um prédio** (localizar existente ou criar novo). Enquanto não houver vínculo, o usuário fica no estado `onboarding_pendente` e só acessa o fluxo de onboarding.

@@ -12,8 +12,18 @@
   --color-cream: #fff9f3;
   --color-sand: #f4efea;
   --color-line: #efe4da;
+  /* Borda de campos de formulário: contraste ≥ 3:1 com o fundo (WCAG 1.4.11) */
+  --color-edge: #958a80;
   --color-warn: #7a5b00;
   --color-warn-soft: #fff6db;
+  --color-plate-top: #fbf8f4;
+  --color-plate-bottom: #efe8e0;
+  --color-plate-edge: #d9cfc4;
+  --color-plate-screw: #b9ada0;
+  --color-danger: #b42318;
+  --color-danger-dark: #912018;
+  --color-danger-soft: #fef3f2;
+  --color-danger-line: #f4c7c3;
 
   --radius-card: 18px;
 

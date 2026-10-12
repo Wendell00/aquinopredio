@@ -1,5 +1,7 @@
 import { ConfigService } from "@nestjs/config";
 import type { TypeOrmModuleAsyncOptions } from "@nestjs/typeorm";
+import { migrations } from "../database/migrations";
+import { SnakeNamingStrategy } from "../database/snake-naming.strategy";
 import type { Env } from "./env";
 
 export const databaseConfig: TypeOrmModuleAsyncOptions = {
@@ -8,7 +10,11 @@ export const databaseConfig: TypeOrmModuleAsyncOptions = {
     type: "postgres",
     url: config.get("DATABASE_URL", { infer: true }),
     autoLoadEntities: true,
-    // Só em desenvolvimento; demais ambientes usam migrations.
-    synchronize: config.get("NODE_ENV", { infer: true }) === "development",
+    namingStrategy: new SnakeNamingStrategy(),
+    // Schema só por migrations (PostGIS, enums, índices GIST/GIN não saem bem do synchronize).
+    synchronize: false,
+    migrations,
+    migrationsRun: true,
+    migrationsTransactionMode: "each",
   }),
 };

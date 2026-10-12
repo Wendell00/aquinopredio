@@ -6,3 +6,9 @@ export const healthResponseSchema = z.object({
   timestamp: z.iso.datetime(),
 });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
+
+export const publicConfigSchema = z.object({
+  googleLogin: z.boolean(),
+  vapidPublicKey: z.string().nullable(),
+});
+export type PublicConfig = z.infer<typeof publicConfigSchema>;
