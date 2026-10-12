@@ -14,3 +14,14 @@ export function formatCep(cep: string): string {
 export function plural(count: number, one: string, many: string): string {
   return `${count.toLocaleString("pt-BR")} ${count === 1 ? one : many}`;
 }
+
+/** "agora", "há 5 min", "há 3 h", "há 2 dias", "12 de out." */
+export function timeAgo(iso: string, now = Date.now()): string {
+  const seconds = Math.max(0, (now - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return "agora";
+  if (seconds < 3600) return `há ${Math.floor(seconds / 60)} min`;
+  if (seconds < 86_400) return `há ${Math.floor(seconds / 3600)} h`;
+  const days = Math.floor(seconds / 86_400);
+  if (days < 7) return `há ${days} dia${days === 1 ? "" : "s"}`;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+}

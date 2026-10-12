@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/cn";
 
 interface NavItem {
@@ -52,7 +53,10 @@ export function AppNav({
       aria-label="Principal"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:inset-y-0 lg:left-0 lg:right-auto lg:w-60 lg:border-r lg:border-t-0 lg:bg-cream lg:pb-0"
     >
-      <ul className="mx-auto flex max-w-[34rem] items-stretch justify-around lg:mt-24 lg:flex-col lg:justify-start lg:gap-1 lg:px-3">
+      <div className="hidden px-6 pt-6 lg:block">
+        <Logo href="/inicio" />
+      </div>
+      <ul className="mx-auto flex max-w-[34rem] items-stretch justify-around lg:mt-10 lg:flex-col lg:justify-start lg:gap-1 lg:px-3">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active = isActive(pathname, href);
           const badge = href === "/conversas" && unread > 0;

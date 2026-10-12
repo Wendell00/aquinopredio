@@ -13,6 +13,7 @@ import { BuildingsModule } from "./buildings/buildings.module";
 import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
 import { databaseConfig } from "./config/database.config";
 import { type Env, validateEnv } from "./config/env";
+import { FeedModule } from "./feed/feed.module";
 import { GeoModule } from "./geo/geo.module";
 import { MailModule } from "./mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
@@ -58,6 +59,7 @@ import { UsersModule } from "./users/users.module";
     GeoModule,
     BuildingsModule,
     AdsModule,
+    FeedModule,
   ],
   // Ordem importa: primeiro a sessão (AuthGuard), depois o rate limit por usuário.
   providers: [
