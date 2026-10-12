@@ -4,6 +4,8 @@ import { AdsScheduler } from "../src/ads/ads.scheduler";
 import { AdModerationService } from "../src/ads/moderation/ad-moderation.service";
 import { AiService } from "../src/ai/ai.service";
 import { GeoService } from "../src/geo/geo.service";
+import { NotificationsService } from "../src/notifications/notifications.service";
+import { SettingsService } from "../src/settings/settings.service";
 import { StorageService } from "../src/storage/storage.service";
 import { as, createTestApp, resetRateLimits, resident } from "./support/app";
 import { createFakeAi, createFakeStorage, fakeGeo, sampleJpeg } from "./support/fakes";
@@ -62,6 +64,8 @@ describe("Anúncios (e2e)", () => {
   }
 
   const moderate = (adId: string) => app.get(AdModerationService).moderate(adId);
+  const scheduler = () =>
+    new AdsScheduler(db, app.get(NotificationsService), app.get(SettingsService));
 
   it("lista as categorias da RN-060", async () => {
     const { cookie } = await resident(app);
@@ -206,9 +210,18 @@ describe("Anúncios (e2e)", () => {
     await db.query(`UPDATE ads SET expires_at = now() - interval '1 minute' WHERE id = $1`, [
       ad.id,
     ]);
-    expect(await new AdsScheduler(db).expireAds()).toBeGreaterThanOrEqual(1);
+    expect(await scheduler().expireAds()).toBeGreaterThanOrEqual(1);
     expect((await api.get(`/api/ads/mine/${ad.id}`)).body.status).toBe("expirado");
     expect((await api.post(`/api/ads/${ad.id}/renew`).expect(200)).body.status).toBe("ativo");
+
+    // RN-063: aviso de expiração, uma vez por ciclo.
+    await db.query(`UPDATE ads SET expires_at = now() + interval '2 days' WHERE id = $1`, [ad.id]);
+    expect(await scheduler().warnExpiring()).toBeGreaterThanOrEqual(1);
+    expect(await scheduler().warnExpiring()).toBe(0);
+    const notes = await api.get("/api/notifications").expect(200);
+    expect(notes.body.map((n: { type: string }) => n.type)).toEqual(
+      expect.arrayContaining(["anuncio_expirando", "anuncio_aprovado"]),
+    );
 
     await api.delete(`/api/ads/${ad.id}`).expect(204);
     await api.get(`/api/ads/mine/${ad.id}`).expect(404);

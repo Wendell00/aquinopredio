@@ -10,6 +10,7 @@ import {
   moderationOutputSchema,
 } from "../../ai/prompts/moderation.prompt";
 import type { Env } from "../../config/env";
+import { NotificationsService } from "../../notifications/notifications.service";
 import { SettingsService } from "../../settings/settings.service";
 import { UploadsService } from "../../uploads/uploads.service";
 import { Ad, AdModeration } from "../ad.entity";
@@ -35,6 +36,7 @@ export class AdModerationService {
     private readonly uploads: UploadsService,
     private readonly settings: SettingsService,
     private readonly config: ConfigService<Env, true>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async moderate(adId: string): Promise<ModerationResult | null> {
@@ -141,6 +143,12 @@ export class AdModerationService {
   /** Aplica o resultado. Ao ativar pela primeira vez, começa a contar a validade (RN-063). */
   async apply(ad: Ad, result: ModerationResult, reason: string | null): Promise<ModerationResult> {
     if (result === "ativo") {
+      void this.notifications.notify(ad.userId, {
+        type: "anuncio_aprovado",
+        title: "Seu anúncio está no ar",
+        body: `“${ad.title}” já aparece para os vizinhos.`,
+        url: `/anuncios/${ad.id}`,
+      });
       const days = await this.settings.get("ads.activeDays");
       const now = new Date();
       await this.ads.update(ad.id, {
@@ -154,6 +162,12 @@ export class AdModerationService {
       });
     } else if (result === "removido") {
       await this.ads.update(ad.id, { status: "removido", statusReason: reason });
+      void this.notifications.notify(ad.userId, {
+        type: "anuncio_removido",
+        title: "Anúncio não aprovado",
+        body: `“${ad.title}”: ${reason ?? "conteúdo não permitido"}.`,
+        url: "/meus-anuncios",
+      });
     }
     return result;
   }

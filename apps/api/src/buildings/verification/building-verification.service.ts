@@ -9,6 +9,7 @@ import {
   buildingValidationOutputSchema,
 } from "../../ai/prompts/building-validation.prompt";
 import { GeoService, type NearbyPlace, type ReverseResult } from "../../geo/geo.service";
+import { NotificationsService } from "../../notifications/notifications.service";
 import { SettingsService } from "../../settings/settings.service";
 import { Building, BuildingVerification } from "../building.entity";
 import { decide, evaluateRules, type VerificationDecision } from "./verification.rules";
@@ -33,6 +34,7 @@ export class BuildingVerificationService {
     private readonly geo: GeoService,
     private readonly ai: AiService,
     private readonly settings: SettingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -191,6 +193,20 @@ export class BuildingVerificationService {
         );
       }
     });
+    if (building.createdBy && result.decision !== "pendente_revisao") {
+      void this.notifications.notify(building.createdBy, {
+        type: "predio_atualizado",
+        title:
+          result.decision === "verificado"
+            ? "Prédio verificado"
+            : "Não conseguimos confirmar o prédio",
+        body:
+          result.decision === "verificado"
+            ? `“${building.name}” foi verificado. Seus anúncios já podem alcançar prédios vizinhos.`
+            : (result.reason ?? "Revise os dados e reenvie."),
+        url: result.decision === "verificado" ? "/inicio" : "/onboarding",
+      });
+    }
     return { decision: result.decision, score: result.score, decidedBy: result.decidedBy };
   }
 }

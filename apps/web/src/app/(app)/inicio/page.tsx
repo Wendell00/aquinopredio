@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
 import { BuildingHeader } from "@/features/buildings/components/building-header";
 import { FeedList } from "@/features/feed/components/feed-list";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import { serverGet } from "@/lib/api/server";
 import { getMe } from "@/lib/session/get-me";
 
@@ -32,12 +33,15 @@ export default async function HomePage({
       )}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">{current && <BuildingHeader current={current} />}</div>
-        <Link
-          href="/meus-anuncios"
-          className="hidden shrink-0 text-sm font-semibold text-brand-dark hover:underline sm:block"
-        >
-          Meus anúncios
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-3">
+          <NotificationBell />
+          <Link
+            href="/meus-anuncios"
+            className="hidden text-sm font-semibold text-brand-dark hover:underline sm:block"
+          >
+            Meus anúncios
+          </Link>
+        </div>
       </div>
       <FeedList
         categories={categories ?? []}

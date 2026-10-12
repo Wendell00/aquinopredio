@@ -57,10 +57,17 @@ export class InteractionsService {
     if (targetId === user.id) throw new BadRequestException("Você não pode bloquear a si mesmo");
     const [target] = await this.dataSource.query(`SELECT id FROM users WHERE id = $1`, [targetId]);
     if (!target) throw new NotFoundException("Usuário não encontrado");
-    await this.dataSource.query(
-      `INSERT INTO user_blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-      [user.id, targetId],
-    );
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        `INSERT INTO user_blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [user.id, targetId],
+      );
+      await manager.query(
+        `UPDATE conversations SET status = 'bloqueada'
+         WHERE (buyer_id = $1 AND seller_id = $2) OR (buyer_id = $2 AND seller_id = $1)`,
+        [user.id, targetId],
+      );
+    });
   }
 
   async unblock(user: User, targetId: string): Promise<void> {

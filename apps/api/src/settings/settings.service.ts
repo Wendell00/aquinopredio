@@ -22,12 +22,17 @@ export class SettingsService {
     ) as Record<SettingKey, unknown>;
   }
 
-  async set(key: SettingKey, value: unknown, updatedBy: string): Promise<void> {
+  async set(key: SettingKey, value: unknown, updatedBy: string | null = null): Promise<void> {
     await this.dataSource.query(
       `INSERT INTO settings (key, value, updated_by) VALUES ($1, $2, $3)
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_by = EXCLUDED.updated_by, updated_at = now()`,
       [key, JSON.stringify(value), updatedBy],
     );
+    this.cache = null;
+  }
+
+  async reset(key: SettingKey): Promise<void> {
+    await this.dataSource.query("DELETE FROM settings WHERE key = $1", [key]);
     this.cache = null;
   }
 

@@ -22,13 +22,16 @@ export async function getAdFormOptions(): Promise<AdFormOptions> {
   return adFormOptionsSchema.parse(await api.get("ads/form-options").json());
 }
 
-export async function uploadAdImage(file: File): Promise<UploadedImage> {
+export async function uploadAdImage(
+  file: File,
+  purpose: "ad" | "chat" | "avatar" = "ad",
+): Promise<UploadedImage> {
   const body = new FormData();
   body.append("file", await compressImage(file), file.name.replace(/\.\w+$/, ".jpg"));
   // Upload pode demorar em 4G: timeout maior e sem retry automático.
   const response = await api.post("uploads/images", {
     body,
-    searchParams: { purpose: "ad" },
+    searchParams: { purpose },
     timeout: 60_000,
     retry: 0,
   });

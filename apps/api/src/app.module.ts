@@ -10,6 +10,7 @@ import { AiModule } from "./ai/ai.module";
 import { AuthGuard } from "./auth/auth.guard";
 import { AuthModule } from "./auth/auth.module";
 import { BuildingsModule } from "./buildings/buildings.module";
+import { ChatModule } from "./chat/chat.module";
 import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
 import { databaseConfig } from "./config/database.config";
 import { type Env, validateEnv } from "./config/env";
@@ -17,6 +18,7 @@ import { FeedModule } from "./feed/feed.module";
 import { GeoModule } from "./geo/geo.module";
 import { MailModule } from "./mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { RedisModule } from "./redis/redis.module";
 import { SettingsModule } from "./settings/settings.module";
 import { StorageModule } from "./storage/storage.module";
@@ -58,8 +60,10 @@ import { UsersModule } from "./users/users.module";
     UsersModule,
     GeoModule,
     BuildingsModule,
+    NotificationsModule,
     AdsModule,
     FeedModule,
+    ChatModule,
   ],
   // Ordem importa: primeiro a sessão (AuthGuard), depois o rate limit por usuário.
   providers: [

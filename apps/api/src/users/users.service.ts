@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { CompleteProfileInput, UpdateProfileInput } from "@repo/shared";
+import type { CompleteProfileInput, NotificationPrefs, UpdateProfileInput } from "@repo/shared";
 import { Repository } from "typeorm";
 import { User } from "./user.entity";
 
@@ -37,6 +37,12 @@ export class UsersService {
 
   async updateProfile(user: User, input: UpdateProfileInput): Promise<User> {
     Object.assign(user, input, { updatedAt: new Date() });
+    return this.repo.save(user);
+  }
+
+  async updateNotificationPrefs(user: User, prefs: NotificationPrefs): Promise<User> {
+    user.notificationPrefs = prefs;
+    user.updatedAt = new Date();
     return this.repo.save(user);
   }
 

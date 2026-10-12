@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
+import { useUnread } from "@/features/notifications/hooks/use-unread";
 import { cn } from "@/lib/cn";
 
 interface NavItem {
@@ -35,14 +36,9 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 /** Barra inferior no celular; trilho lateral no desktop. */
-export function AppNav({
-  role,
-  unread = 0,
-}: {
-  role: UserRole;
-  unread?: number;
-}): React.JSX.Element {
+export function AppNav({ role }: { role: UserRole }): React.JSX.Element {
   const pathname = usePathname();
+  const unread = useUnread().data?.conversations ?? 0;
   const items =
     role === "platform_admin"
       ? [...ITEMS, { href: "/admin", label: "Admin", icon: Shield }]

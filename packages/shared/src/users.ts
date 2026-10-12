@@ -85,6 +85,8 @@ export type NotificationType = z.infer<typeof notificationTypeSchema>;
 /** Preferências por tipo de notificação (RN-122). Ausente = ligado, exceto o resumo diário (opt-in). */
 export const notificationPrefsSchema = z.object({
   disabled: z.array(notificationTypeSchema).default([]),
+  /** Tipos opt-in ligados pelo usuário (ex.: resumo diário do prédio). */
+  enabled: z.array(notificationTypeSchema).default([]),
   quietHours: z.boolean().default(true),
 });
 export type NotificationPrefs = z.infer<typeof notificationPrefsSchema>;
