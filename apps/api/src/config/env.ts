@@ -48,8 +48,20 @@ export const envSchema = z
     AUTH_CHECK_PWNED_PASSWORDS: booleanString,
 
     // E-mail
+    /** `smtp` em dev (Mailpit); `resend` em produção, pela API HTTP do Resend. */
+    MAIL_TRANSPORT: z.enum(["smtp", "resend"]).default("smtp"),
     SMTP_URL: z.string().default("smtp://localhost:1025"),
+    RESEND_API_KEY: optionalString,
+    RESEND_API_URL: z.url().default("https://api.resend.com"),
+    /**
+     * ID ou alias de um template publicado no Resend para a confirmação de e-mail. Sem ele, o HTML
+     * é gerado pelo app (`src/mail/templates.ts`).
+     */
+    RESEND_TEMPLATE_VERIFY_EMAIL: optionalString,
+    /** Com o Resend, o domínio do remetente precisa estar verificado no painel. */
     MAIL_FROM: z.string().default("Aqui no Prédio <nao-responda@aquinopredio.local>"),
+    /** Endereço que recebe as respostas (o remetente é "não responda"). */
+    MAIL_REPLY_TO: optionalString.pipe(z.email().optional()),
 
     // Armazenamento de imagens (S3 compatível)
     STORAGE_ENDPOINT: z.url().default("http://localhost:8333"),
@@ -106,6 +118,13 @@ export const envSchema = z
         code: "custom",
         path: ["GOOGLE_CLIENT_SECRET"],
         message: "GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET devem ser definidos juntos",
+      });
+    }
+    if (env.MAIL_TRANSPORT === "resend" && !env.RESEND_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["RESEND_API_KEY"],
+        message: "RESEND_API_KEY é obrigatória com MAIL_TRANSPORT=resend",
       });
     }
     if (env.NODE_ENV === "production" && env.MODERATION_WITHOUT_AI === "approve") {

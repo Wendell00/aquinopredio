@@ -23,6 +23,17 @@ interface MemberRow {
   created_at: Date;
 }
 
+/** Vínculo alvo de uma ação do administrador, como lido em `memberAction`. */
+interface MemberTarget {
+  membershipId: string;
+  buildingId: string;
+  user_id: string;
+  building_name: string;
+  role: MemberRow["role"];
+  status: MemberRow["status"];
+  verified_at: Date | null;
+}
+
 /** Ações do administrador do prédio (RN-037 a RN-041, RN-094). */
 @Injectable()
 export class BuildingAdminService {
@@ -116,85 +127,22 @@ export class BuildingAdminService {
       throw new BadRequestException("Use a opção de renunciar");
 
     await this.dataSource.transaction(async (manager) => {
+      const target: MemberTarget = { ...member, membershipId, buildingId };
       switch (action) {
         case "aprovar":
-        case "recusar": {
-          if (member.status !== "pendente")
-            throw new BadRequestException("Este pedido já foi respondido");
-          const status = action === "aprovar" ? "ativo" : "recusado";
-          await manager.query(
-            `UPDATE building_memberships SET status = $2, decided_at = now(), updated_at = now() WHERE id = $1`,
-            [membershipId, status],
-          );
-          if (status === "recusado") await this.reconcileUser(manager, member.user_id);
-          void this.notifications.notify(member.user_id, {
-            type: "vinculo_atualizado",
-            title:
-              action === "aprovar"
-                ? "Você entrou no prédio"
-                : "Pedido para entrar no prédio recusado",
-            body:
-              action === "aprovar"
-                ? `Seu vínculo com “${member.building_name}” foi aprovado.`
-                : `O administrador de “${member.building_name}” recusou o pedido. Confira se escolheu o prédio certo.`,
-            url: action === "aprovar" ? "/inicio" : "/perfil",
-          });
+        case "recusar":
+          await this.answerRequest(manager, target, action);
           break;
-        }
         case "verificar":
-        case "remover_selo": {
-          if (member.status !== "ativo")
-            throw new BadRequestException("O morador precisa estar com vínculo ativo");
-          // RN-038 (a): selo concedido pelo administrador.
-          await manager.query(
-            `UPDATE building_memberships SET verified_at = $2, verified_method = $3, updated_at = now() WHERE id = $1`,
-            [
-              membershipId,
-              action === "verificar" ? new Date() : null,
-              action === "verificar" ? "admin" : null,
-            ],
-          );
+        case "remover_selo":
+          await this.setVerified(manager, target, action === "verificar");
           break;
-        }
-        case "remover": {
-          if (member.role === "admin")
-            throw new ForbiddenException("Não é possível remover outro administrador");
-          // RN-040: morador removido, anúncios naquele prédio pausados.
-          await manager.query(
-            `UPDATE building_memberships SET status = 'removido', updated_at = now() WHERE id = $1`,
-            [membershipId],
-          );
-          await manager.query(
-            `UPDATE ads SET status = 'pausado', updated_at = now() WHERE user_id = $1 AND building_id = $2 AND status IN ('ativo', 'em_moderacao')`,
-            [member.user_id, buildingId],
-          );
-          await this.reconcileUser(manager, member.user_id);
-          void this.notifications.notify(member.user_id, {
-            type: "vinculo_atualizado",
-            title: "Você foi removido de um prédio",
-            body: `Seu vínculo com “${member.building_name}” foi encerrado pelo administrador. Seus anúncios de lá foram pausados.`,
-            url: "/perfil",
-          });
+        case "remover":
+          await this.removeMember(manager, target);
           break;
-        }
-        case "promover": {
-          // RN-041: até 3 administradores, só moradores verificados.
-          if (member.status !== "ativo" || !member.verified_at) {
-            throw new BadRequestException("Só moradores verificados podem virar administradores");
-          }
-          const [{ admins }] = await manager.query(
-            `SELECT count(*)::int AS admins FROM building_memberships WHERE building_id = $1 AND role = 'admin' AND status = 'ativo'`,
-            [buildingId],
-          );
-          if (admins >= (await this.settings.get("buildings.maxAdmins"))) {
-            throw new ForbiddenException("O prédio já tem o número máximo de administradores");
-          }
-          await manager.query(
-            `UPDATE building_memberships SET role = 'admin', updated_at = now() WHERE id = $1`,
-            [membershipId],
-          );
+        case "promover":
+          await this.promote(manager, target);
           break;
-        }
       }
       await this.audit.log(
         user.id,
@@ -204,6 +152,82 @@ export class BuildingAdminService {
         manager,
       );
     });
+  }
+
+  private async answerRequest(
+    manager: EntityManager,
+    member: MemberTarget,
+    action: "aprovar" | "recusar",
+  ): Promise<void> {
+    if (member.status !== "pendente")
+      throw new BadRequestException("Este pedido já foi respondido");
+    const approved = action === "aprovar";
+    await manager.query(
+      `UPDATE building_memberships SET status = $2, decided_at = now(), updated_at = now() WHERE id = $1`,
+      [member.membershipId, approved ? "ativo" : "recusado"],
+    );
+    if (!approved) await this.reconcileUser(manager, member.user_id);
+    void this.notifications.notify(member.user_id, {
+      type: "vinculo_atualizado",
+      title: approved ? "Você entrou no prédio" : "Pedido para entrar no prédio recusado",
+      body: approved
+        ? `Seu vínculo com “${member.building_name}” foi aprovado.`
+        : `O administrador de “${member.building_name}” recusou o pedido. Confira se escolheu o prédio certo.`,
+      url: approved ? "/inicio" : "/perfil",
+    });
+  }
+
+  /** RN-038 (a): selo concedido pelo administrador. */
+  private async setVerified(
+    manager: EntityManager,
+    member: MemberTarget,
+    verified: boolean,
+  ): Promise<void> {
+    if (member.status !== "ativo")
+      throw new BadRequestException("O morador precisa estar com vínculo ativo");
+    await manager.query(
+      `UPDATE building_memberships SET verified_at = $2, verified_method = $3, updated_at = now() WHERE id = $1`,
+      [member.membershipId, verified ? new Date() : null, verified ? "admin" : null],
+    );
+  }
+
+  /** RN-040: morador removido, anúncios naquele prédio pausados. */
+  private async removeMember(manager: EntityManager, member: MemberTarget): Promise<void> {
+    if (member.role === "admin")
+      throw new ForbiddenException("Não é possível remover outro administrador");
+    await manager.query(
+      `UPDATE building_memberships SET status = 'removido', updated_at = now() WHERE id = $1`,
+      [member.membershipId],
+    );
+    await manager.query(
+      `UPDATE ads SET status = 'pausado', updated_at = now() WHERE user_id = $1 AND building_id = $2 AND status IN ('ativo', 'em_moderacao')`,
+      [member.user_id, member.buildingId],
+    );
+    await this.reconcileUser(manager, member.user_id);
+    void this.notifications.notify(member.user_id, {
+      type: "vinculo_atualizado",
+      title: "Você foi removido de um prédio",
+      body: `Seu vínculo com “${member.building_name}” foi encerrado pelo administrador. Seus anúncios de lá foram pausados.`,
+      url: "/perfil",
+    });
+  }
+
+  /** RN-041: até 3 administradores, só moradores verificados. */
+  private async promote(manager: EntityManager, member: MemberTarget): Promise<void> {
+    if (member.status !== "ativo" || !member.verified_at) {
+      throw new BadRequestException("Só moradores verificados podem virar administradores");
+    }
+    const [{ admins }] = await manager.query(
+      `SELECT count(*)::int AS admins FROM building_memberships WHERE building_id = $1 AND role = 'admin' AND status = 'ativo'`,
+      [member.buildingId],
+    );
+    if (admins >= (await this.settings.get("buildings.maxAdmins"))) {
+      throw new ForbiddenException("O prédio já tem o número máximo de administradores");
+    }
+    await manager.query(
+      `UPDATE building_memberships SET role = 'admin', updated_at = now() WHERE id = $1`,
+      [member.membershipId],
+    );
   }
 
   /** RN-041: renunciar; se ninguém sobrar, o morador verificado mais antigo assume. */

@@ -35,15 +35,92 @@ function daysUntil(iso: string | null): number | null {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 }
 
-function MyAdCard({ ad, highlight }: { ad: MyAd; highlight: boolean }): React.JSX.Element {
+function MyAdActions({ ad, expiresIn }: { ad: MyAd; expiresIn: number | null }): React.JSX.Element {
   const action = useAdAction();
   const remove = useDeleteAd();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const status = STATUS[ad.status];
-  const expiresIn = daysUntil(ad.expiresAt);
   const canBump =
     ad.status === "ativo" && ad.canBumpAt !== null && new Date(ad.canBumpAt) <= new Date();
   const busy = action.isPending || remove.isPending;
+
+  return (
+    <div className="mt-1 flex flex-wrap gap-2">
+      {ad.status === "ativo" && (
+        <Link href={`/anuncios/${ad.id}`} className={buttonClasses("secondary", "sm")}>
+          <Eye className="size-4" aria-hidden /> Ver
+        </Link>
+      )}
+      {["ativo", "em_moderacao", "pausado", "expirado"].includes(ad.status) && (
+        <Link href={`/anuncios/${ad.id}/editar`} className={buttonClasses("secondary", "sm")}>
+          <Pencil className="size-4" aria-hidden /> Editar
+        </Link>
+      )}
+      {ad.status === "ativo" && (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={busy}
+          onClick={() => action.mutate({ id: ad.id, action: "pause" })}
+        >
+          <Pause className="size-4" aria-hidden /> Pausar
+        </Button>
+      )}
+      {ad.status === "pausado" && (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={busy}
+          onClick={() => action.mutate({ id: ad.id, action: "resume" })}
+        >
+          <Play className="size-4" aria-hidden /> Reativar
+        </Button>
+      )}
+      {(ad.status === "expirado" ||
+        (ad.status === "ativo" && expiresIn !== null && expiresIn <= 3)) && (
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={() => action.mutate({ id: ad.id, action: "renew" })}
+        >
+          <RefreshCw className="size-4" aria-hidden /> Renovar
+        </Button>
+      )}
+      {canBump && (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={busy}
+          onClick={() => action.mutate({ id: ad.id, action: "bump" })}
+        >
+          <ArrowUp className="size-4" aria-hidden /> Subir no feed
+        </Button>
+      )}
+      {confirmDelete ? (
+        <span className="inline-flex items-center gap-2">
+          <Button
+            variant="danger"
+            size="sm"
+            loading={remove.isPending}
+            onClick={() => remove.mutate(ad.id)}
+          >
+            Excluir de vez
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+            Cancelar
+          </Button>
+        </span>
+      ) : (
+        <Button variant="ghost" size="sm" disabled={busy} onClick={() => setConfirmDelete(true)}>
+          <Trash2 className="size-4" aria-hidden /> Excluir
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function MyAdCard({ ad, highlight }: { ad: MyAd; highlight: boolean }): React.JSX.Element {
+  const status = STATUS[ad.status];
+  const expiresIn = daysUntil(ad.expiresAt);
   const cover = ad.images[0];
 
   return (
@@ -106,82 +183,7 @@ function MyAdCard({ ad, highlight }: { ad: MyAd; highlight: boolean }): React.JS
           </p>
         )}
 
-        <div className="mt-1 flex flex-wrap gap-2">
-          {ad.status === "ativo" && (
-            <Link href={`/anuncios/${ad.id}`} className={buttonClasses("secondary", "sm")}>
-              <Eye className="size-4" aria-hidden /> Ver
-            </Link>
-          )}
-          {["ativo", "em_moderacao", "pausado", "expirado"].includes(ad.status) && (
-            <Link href={`/anuncios/${ad.id}/editar`} className={buttonClasses("secondary", "sm")}>
-              <Pencil className="size-4" aria-hidden /> Editar
-            </Link>
-          )}
-          {ad.status === "ativo" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={() => action.mutate({ id: ad.id, action: "pause" })}
-            >
-              <Pause className="size-4" aria-hidden /> Pausar
-            </Button>
-          )}
-          {ad.status === "pausado" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={() => action.mutate({ id: ad.id, action: "resume" })}
-            >
-              <Play className="size-4" aria-hidden /> Reativar
-            </Button>
-          )}
-          {(ad.status === "expirado" ||
-            (ad.status === "ativo" && expiresIn !== null && expiresIn <= 3)) && (
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() => action.mutate({ id: ad.id, action: "renew" })}
-            >
-              <RefreshCw className="size-4" aria-hidden /> Renovar
-            </Button>
-          )}
-          {canBump && (
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={() => action.mutate({ id: ad.id, action: "bump" })}
-            >
-              <ArrowUp className="size-4" aria-hidden /> Subir no feed
-            </Button>
-          )}
-          {confirmDelete ? (
-            <span className="inline-flex items-center gap-2">
-              <Button
-                variant="danger"
-                size="sm"
-                loading={remove.isPending}
-                onClick={() => remove.mutate(ad.id)}
-              >
-                Excluir de vez
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
-                Cancelar
-              </Button>
-            </span>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={busy}
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2 className="size-4" aria-hidden /> Excluir
-            </Button>
-          )}
-        </div>
+        <MyAdActions ad={ad} expiresIn={expiresIn} />
       </div>
     </li>
   );

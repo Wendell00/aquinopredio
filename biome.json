@@ -10,7 +10,8 @@
       "!**/coverage",
       "!**/next-env.d.ts",
       "!pnpm-lock.yaml",
-      "!.claude"
+      "!.claude",
+      "!apps/api/src/mail/resend"
     ]
   },
   "formatter": {

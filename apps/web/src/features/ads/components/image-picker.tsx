@@ -47,20 +47,22 @@ export function ImagePicker({
     }));
     setPending((current) => [...current, ...items.map(({ key, preview }) => ({ key, preview }))]);
 
-    for (const item of items) {
-      try {
-        const uploaded = await uploadAdImage(item.file);
-        onChange([...latest.current, uploaded]);
-      } catch (error) {
-        toast.error(
-          error instanceof ApiError ? error.message : "Não foi possível enviar uma das fotos.",
-        );
-      } finally {
-        URL.revokeObjectURL(item.preview);
-        setPending((current) => current.filter((p) => p.key !== item.key));
-      }
-    }
+    for (const item of items) await upload(item);
     if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function upload(item: PendingUpload & { file: File }): Promise<void> {
+    try {
+      const uploaded = await uploadAdImage(item.file);
+      onChange([...latest.current, uploaded]);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Não foi possível enviar uma das fotos.",
+      );
+    } finally {
+      URL.revokeObjectURL(item.preview);
+      setPending((current) => current.filter((p) => p.key !== item.key));
+    }
   }
 
   function makeCover(index: number): void {

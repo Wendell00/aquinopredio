@@ -64,6 +64,52 @@ function valuesFromDraft(
   };
 }
 
+function ModeChooser({
+  aiEnabled,
+  onChoose,
+}: {
+  aiEnabled: boolean;
+  onChoose: (mode: (typeof MODES)[number]) => void;
+}): React.JSX.Element {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => onChoose("ia")}
+        disabled={!aiEnabled}
+        className="group flex items-start gap-4 rounded-2xl border-2 border-brand/30 bg-white p-5 text-left transition-colors hover:border-brand disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-white">
+          <Sparkles className="size-6" aria-hidden />
+        </span>
+        <span>
+          <span className="block text-lg font-extrabold">Escrever do meu jeito</span>
+          <span className="mt-1 block text-ink-soft">
+            {aiEnabled
+              ? "Conte em poucas palavras e mande fotos. A IA monta o anúncio e você revisa antes de publicar."
+              : "A criação com IA está indisponível no momento."}
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={() => onChoose("manual")}
+        className="flex items-start gap-4 rounded-2xl border border-line bg-white p-5 text-left transition-colors hover:border-ink-soft/40"
+      >
+        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand text-ink">
+          <PenLine className="size-6" aria-hidden />
+        </span>
+        <span>
+          <span className="block text-lg font-extrabold">Preencher os campos</span>
+          <span className="mt-1 block text-ink-soft">
+            Você escreve título, descrição e preço do seu jeito.
+          </span>
+        </span>
+      </button>
+    </>
+  );
+}
+
 export function CreateAdFlow({ options }: { options: AdFormOptions }): React.JSX.Element {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -121,39 +167,7 @@ export function CreateAdFlow({ options }: { options: AdFormOptions }): React.JSX
     return (
       <div className="flex flex-col gap-4">
         {limitAlert}
-        <button
-          type="button"
-          onClick={() => void setMode("ia")}
-          disabled={!options.aiEnabled}
-          className="group flex items-start gap-4 rounded-2xl border-2 border-brand/30 bg-white p-5 text-left transition-colors hover:border-brand disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand text-white">
-            <Sparkles className="size-6" aria-hidden />
-          </span>
-          <span>
-            <span className="block text-lg font-extrabold">Escrever do meu jeito</span>
-            <span className="mt-1 block text-ink-soft">
-              {options.aiEnabled
-                ? "Conte em poucas palavras e mande fotos. A IA monta o anúncio e você revisa antes de publicar."
-                : "A criação com IA está indisponível no momento."}
-            </span>
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => void setMode("manual")}
-          className="flex items-start gap-4 rounded-2xl border border-line bg-white p-5 text-left transition-colors hover:border-ink-soft/40"
-        >
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand text-ink">
-            <PenLine className="size-6" aria-hidden />
-          </span>
-          <span>
-            <span className="block text-lg font-extrabold">Preencher os campos</span>
-            <span className="mt-1 block text-ink-soft">
-              Você escreve título, descrição e preço do seu jeito.
-            </span>
-          </span>
-        </button>
+        <ModeChooser aiEnabled={options.aiEnabled} onChoose={(next) => void setMode(next)} />
       </div>
     );
   }

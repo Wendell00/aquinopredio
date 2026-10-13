@@ -43,6 +43,13 @@ describe("validateEnv", () => {
     expect(() => validateEnv({ ...base, VAPID_PUBLIC_KEY: "abc def" })).toThrow(/VAPID/);
   });
 
+  it("exige a chave do Resend quando ele é o transporte de e-mail", () => {
+    expect(() => validateEnv({ ...base, MAIL_TRANSPORT: "resend" })).toThrow(/RESEND_API_KEY/);
+    expect(
+      validateEnv({ ...base, MAIL_TRANSPORT: "resend", RESEND_API_KEY: "re_123" }).MAIL_TRANSPORT,
+    ).toBe("resend");
+  });
+
   it("proíbe aprovar sem IA em produção", () => {
     expect(() =>
       validateEnv({ ...base, NODE_ENV: "production", MODERATION_WITHOUT_AI: "approve" }),

@@ -14,7 +14,7 @@ import { NotificationsService } from "../../notifications/notifications.service"
 import { SettingsService } from "../../settings/settings.service";
 import { UploadsService } from "../../uploads/uploads.service";
 import { Ad, AdModeration } from "../ad.entity";
-import { moderateLocally } from "./moderation.rules";
+import { type LocalModerationResult, moderateLocally } from "./moderation.rules";
 
 /** Confiança mínima para a IA remover sozinha; abaixo disso vai para revisão (docs §4.3). */
 const REMOVE_CONFIDENCE = 0.8;
@@ -50,13 +50,17 @@ export class AdModerationService {
 
     const text = [ad.title, ad.description, ad.tags.join(" "), ad.availability ?? ""].join("\n");
     const local = moderateLocally(text);
+    const aiResult = await this.askAi(ad);
+    return aiResult ? this.decideWithAi(ad, aiResult, local) : this.decideWithRules(ad, local);
+  }
 
-    let aiResult: { data: ModerationOutput; model: string } | null = null;
+  /** `null` quando a IA não está disponível (RN-113). */
+  private async askAi(ad: Ad): Promise<{ data: ModerationOutput; model: string } | null> {
+    const images = [...ad.images]
+      .sort((a, b) => a.position - b.position)
+      .map((image) => image.upload);
     try {
-      const images = [...ad.images]
-        .sort((a, b) => a.position - b.position)
-        .map((image) => image.upload);
-      aiResult = await this.ai.structured({
+      return await this.ai.structured({
         task: "moderation",
         promptVersion: MODERATION_PROMPT_VERSION,
         schemaName: "moderacao",
@@ -77,32 +81,37 @@ export class AdModerationService {
         userId: ad.userId,
       });
     } catch (error) {
-      if (!(error instanceof AiUnavailableError)) throw error;
+      if (error instanceof AiUnavailableError) return null;
+      throw error;
     }
+  }
 
-    if (aiResult) {
-      const { decisao, confianca, motivo, categorias_violadas } = aiResult.data;
-      const result: ModerationResult =
-        decisao === "proibido" && confianca >= REMOVE_CONFIDENCE
-          ? "removido"
-          : decisao === "aprovado" && local.decision === "aprovado"
-            ? "ativo"
-            : "em_moderacao";
-      await this.record(ad, {
-        decision: result === "ativo" ? "aprovado" : result === "removido" ? "proibido" : "revisar",
-        decidedBy: "ia",
-        categories: [...new Set([...categorias_violadas, ...local.categories])],
-        reason: motivo || null,
-        confidence: confianca,
-        model: aiResult.model,
-      });
-      return this.apply(
-        ad,
-        result,
-        result === "removido" ? motivo || "Conteúdo não permitido" : null,
-      );
-    }
+  private async decideWithAi(
+    ad: Ad,
+    aiResult: { data: ModerationOutput; model: string },
+    local: LocalModerationResult,
+  ): Promise<ModerationResult> {
+    const { decisao, confianca, motivo, categorias_violadas } = aiResult.data;
+    let result: ModerationResult = "em_moderacao";
+    if (decisao === "proibido" && confianca >= REMOVE_CONFIDENCE) result = "removido";
+    else if (decisao === "aprovado" && local.decision === "aprovado") result = "ativo";
+    const decision = { ativo: "aprovado", removido: "proibido", em_moderacao: "revisar" } as const;
+    await this.record(ad, {
+      decision: decision[result],
+      decidedBy: "ia",
+      categories: [...new Set([...categorias_violadas, ...local.categories])],
+      reason: motivo || null,
+      confidence: confianca,
+      model: aiResult.model,
+    });
+    return this.apply(
+      ad,
+      result,
+      result === "removido" ? motivo || "Conteúdo não permitido" : null,
+    );
+  }
 
+  private async decideWithRules(ad: Ad, local: LocalModerationResult): Promise<ModerationResult> {
     const approveWithoutAi =
       this.config.get("MODERATION_WITHOUT_AI", { infer: true }) === "approve";
     const result: ModerationResult =

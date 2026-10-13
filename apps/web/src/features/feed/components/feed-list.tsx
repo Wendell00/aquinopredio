@@ -10,6 +10,53 @@ import { useFeed } from "../hooks/use-feed";
 import { AdCard, AdCardSkeleton } from "./ad-card";
 import { FeedFilters, useFeedFilters } from "./feed-filters";
 
+type Filters = ReturnType<typeof useFeedFilters>[0];
+
+function toFeedQuery(filters: Filters): FeedQuery {
+  return {
+    buildingId: filters.predio ?? undefined,
+    q: filters.q ?? undefined,
+    type: filters.tipo ?? undefined,
+    categoryId: filters.cat ?? undefined,
+    distanceKm: filters.dist ?? undefined,
+    priceMin: filters.min !== null ? filters.min * 100 : undefined,
+    priceMax: filters.max !== null ? filters.max * 100 : undefined,
+    verifiedOnly: filters.verificados ? "true" : undefined,
+  };
+}
+
+function isFiltering(filters: Filters): boolean {
+  return Boolean(
+    filters.q ||
+      filters.tipo ||
+      filters.cat ||
+      filters.dist !== null ||
+      filters.min ||
+      filters.max ||
+      filters.verificados,
+  );
+}
+
+function EmptyFeed({ filtering }: { filtering: boolean }): React.JSX.Element {
+  return (
+    <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-edge/50 p-6">
+      <p className="text-lg font-bold">
+        {filtering ? "Nada encontrado com esses filtros" : "Ainda não há anúncios por aqui"}
+      </p>
+      <p className="text-ink-soft">
+        {filtering
+          ? "Tente outra palavra ou aumente a distância."
+          : "Seja o primeiro a anunciar no prédio. Os vizinhos de prédios próximos também aparecem aqui."}
+      </p>
+      {!filtering && (
+        <Link href="/anunciar" className={buttonClasses("primary", "sm")}>
+          Criar anúncio
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export function FeedList({
   categories,
   buildings,
@@ -20,19 +67,7 @@ export function FeedList({
   primaryBuildingId: string | null;
 }): React.JSX.Element {
   const [filters, setFilters] = useFeedFilters();
-  const query = useMemo<FeedQuery>(
-    () => ({
-      buildingId: filters.predio ?? undefined,
-      q: filters.q ?? undefined,
-      type: filters.tipo ?? undefined,
-      categoryId: filters.cat ?? undefined,
-      distanceKm: filters.dist ?? undefined,
-      priceMin: filters.min !== null ? filters.min * 100 : undefined,
-      priceMax: filters.max !== null ? filters.max * 100 : undefined,
-      verifiedOnly: filters.verificados ? "true" : undefined,
-    }),
-    [filters],
-  );
+  const query = useMemo(() => toFeedQuery(filters), [filters]);
   const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useFeed(query);
   const sentinel = useRef<HTMLDivElement>(null);
@@ -54,15 +89,7 @@ export function FeedList({
   const items = data?.pages.flatMap((page) => page.items) ?? [];
   const notice = data?.pages[0]?.notice;
   const activeBuildings = buildings.filter((item) => item.status === "ativo");
-  const filtering = Boolean(
-    filters.q ||
-      filters.tipo ||
-      filters.cat ||
-      filters.dist !== null ||
-      filters.min ||
-      filters.max ||
-      filters.verificados,
-  );
+  const filtering = isFiltering(filters);
 
   return (
     <section className="flex flex-col gap-5" aria-label="Anúncios">
@@ -108,23 +135,7 @@ export function FeedList({
           ))}
         </div>
       ) : (
-        !notice && (
-          <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-edge/50 p-6">
-            <p className="text-lg font-bold">
-              {filtering ? "Nada encontrado com esses filtros" : "Ainda não há anúncios por aqui"}
-            </p>
-            <p className="text-ink-soft">
-              {filtering
-                ? "Tente outra palavra ou aumente a distância."
-                : "Seja o primeiro a anunciar no prédio. Os vizinhos de prédios próximos também aparecem aqui."}
-            </p>
-            {!filtering && (
-              <Link href="/anunciar" className={buttonClasses("primary", "sm")}>
-                Criar anúncio
-              </Link>
-            )}
-          </div>
-        )
+        !notice && <EmptyFeed filtering={filtering} />
       )}
 
       <div ref={sentinel} aria-hidden />
