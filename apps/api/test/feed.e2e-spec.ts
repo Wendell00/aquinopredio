@@ -123,8 +123,15 @@ describe("Feed, detalhe e interações (e2e)", () => {
     expect(await feedIds(viewerC.cookie)).toEqual([ads.fiveKm]);
   });
 
-  it("não mostra os próprios anúncios no feed (RN-074)", async () => {
-    expect(await feedIds(seller.cookie)).toEqual([]);
+  it("mostra os próprios anúncios no feed, marcados como do leitor (RN-074)", async () => {
+    const { body } = await as(app, seller.cookie).get("/api/feed").expect(200);
+    expect(new Set(body.items.map((item: { id: string }) => item.id))).toEqual(
+      new Set([ads.onlyBuilding, ads.oneKm, ads.fiveKm]),
+    );
+    expect(body.items.every((item: { isMine: boolean }) => item.isMine)).toBe(true);
+
+    const other = (await as(app, neighborA.cookie).get("/api/feed").expect(200)).body.items;
+    expect(other.some((item: { isMine: boolean }) => item.isMine)).toBe(false);
   });
 
   it("mostra prédio e distância aproximada, nunca o endereço (RN-034, RN-073)", async () => {
@@ -219,7 +226,7 @@ describe("Feed, detalhe e interações (e2e)", () => {
       title: "Passeio com cães",
       radiusKm: 1,
     });
-    expect(await feedIds(viewerB.cookie)).not.toContain(neighborBuildingAd);
+    expect((await feedIds(viewerB.cookie))[0]).toBe(neighborBuildingAd);
     const anotherInB = await joinBuilding(viewerB.buildingId, "Outro do B");
     const fromB = await feedIds(anotherInB.cookie);
     expect(fromB[0]).toBe(neighborBuildingAd);

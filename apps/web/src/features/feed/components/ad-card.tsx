@@ -38,11 +38,18 @@ export function AdCard({
             <ImageOff className="size-7" aria-hidden />
           </span>
         )}
-        {ad.type === "procura" && (
-          <span className="absolute left-2 top-2 rounded-full bg-ink px-2.5 py-0.5 text-[0.72rem] font-bold text-white">
-            {AD_TYPE_LABELS.procura}
-          </span>
-        )}
+        <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+          {ad.isMine && (
+            <span className="rounded-full bg-brand px-2.5 py-0.5 text-[0.72rem] font-bold text-white">
+              Seu anúncio
+            </span>
+          )}
+          {ad.type === "procura" && (
+            <span className="rounded-full bg-ink px-2.5 py-0.5 text-[0.72rem] font-bold text-white">
+              {AD_TYPE_LABELS.procura}
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <h3 className="line-clamp-2 text-[0.95rem] font-bold leading-snug">
@@ -62,18 +69,20 @@ export function AdCard({
         </p>
         <p className="text-[0.75rem] text-muted">{timeAgo(ad.publishedAt)}</p>
       </div>
-      <button
-        type="button"
-        onClick={() => toggle.mutate({ id: ad.id, favorite: !ad.favorited })}
-        aria-pressed={ad.favorited}
-        aria-label={ad.favorited ? "Remover dos favoritos" : "Salvar nos favoritos"}
-        className="absolute right-2 top-2 z-10 grid size-9 place-items-center rounded-full bg-white/90 shadow-sm transition-transform active:scale-90"
-      >
-        <Heart
-          className={cn("size-5", ad.favorited ? "fill-brand text-brand" : "text-ink")}
-          aria-hidden
-        />
-      </button>
+      {!ad.isMine && (
+        <button
+          type="button"
+          onClick={() => toggle.mutate({ id: ad.id, favorite: !ad.favorited })}
+          aria-pressed={ad.favorited}
+          aria-label={ad.favorited ? "Remover dos favoritos" : "Salvar nos favoritos"}
+          className="absolute right-2 top-2 z-10 grid size-9 place-items-center rounded-full bg-white/90 shadow-sm transition-transform active:scale-90"
+        >
+          <Heart
+            className={cn("size-5", ad.favorited ? "fill-brand text-brand" : "text-ink")}
+            aria-hidden
+          />
+        </button>
+      )}
     </article>
   );
 }

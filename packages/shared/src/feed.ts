@@ -40,6 +40,8 @@ export const feedAdSchema = z.object({
   sellerVerified: z.boolean(),
   publishedAt: z.iso.datetime(),
   favorited: z.boolean(),
+  /** Anúncio do próprio leitor (RN-074): aparece no feed, mas sem favoritar. */
+  isMine: z.boolean(),
 });
 export type FeedAd = z.infer<typeof feedAdSchema>;
 

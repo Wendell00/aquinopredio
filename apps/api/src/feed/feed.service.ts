@@ -34,17 +34,17 @@ interface FeedRow {
   cover_width: number | null;
   cover_height: number | null;
   favorited: boolean;
+  is_mine: boolean;
 }
 
 /**
  * Regra central de visibilidade (RN-058), usada pelo feed e pelo detalhe:
- * o anúncio está ativo e (é do prédio do leitor OU o leitor está dentro do raio do anúncio),
- * não é do próprio leitor e não há bloqueio entre os dois (RN-074, RN-075).
+ * o anúncio está ativo e (é do prédio do leitor OU o leitor está dentro do raio do anúncio)
+ * e não há bloqueio entre os dois (RN-075). Os próprios anúncios aparecem no feed (RN-074).
  * Espera `a` (ads) e `v` (prédio do leitor, com `location`) na consulta.
  */
 const VISIBLE = `
   a.status = 'ativo'
-  AND a.user_id <> $1
   -- Raio 0 = só o próprio prédio, mesmo que outro prédio esteja no mesmo ponto (distância 0).
   AND (a.building_id = v.id OR (a.radius_m > 0 AND ST_DWithin(a.location, v.location, a.radius_m)))
   AND NOT EXISTS (
@@ -130,7 +130,8 @@ export class FeedService {
               c.id AS category_id, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
               cover.id AS cover_id, cover.key AS cover_key, cover.thumb_key AS cover_thumb,
               cover.width AS cover_width, cover.height AS cover_height,
-              EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.ad_id = a.id) AS favorited
+              EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.ad_id = a.id) AS favorited,
+              a.user_id = $1 AS is_mine
        FROM ads a
        CROSS JOIN v
        JOIN buildings b ON b.id = a.building_id
@@ -175,7 +176,7 @@ export class FeedService {
               c.id AS category_id, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
               cover.id AS cover_id, cover.key AS cover_key, cover.thumb_key AS cover_thumb,
               cover.width AS cover_width, cover.height AS cover_height,
-              true AS favorited, f.created_at AS favorited_at
+              true AS favorited, a.user_id = $1 AS is_mine, f.created_at AS favorited_at
        FROM favorites f
        JOIN ads a ON a.id = f.ad_id
        JOIN buildings v ON v.id = ANY($2::uuid[])
@@ -302,6 +303,7 @@ export class FeedService {
       sellerVerified: row.seller_verified,
       publishedAt: new Date(row.published_at).toISOString(),
       favorited: row.favorited,
+      isMine: row.is_mine,
     };
   }
 }

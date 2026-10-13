@@ -96,7 +96,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-071** — Ordenação padrão: (1) anúncios do próprio prédio, (2) demais por distância crescente, (3) dentro da mesma faixa, mais recentes/"subidos" primeiro.
 - **RN-072** — Filtros: tipo, categoria, faixa de distância (só meu prédio / até 1 / 3 / 5 km), faixa de preço, apenas verificados, busca textual (título, descrição, tags).
 - **RN-073** — Cada card exibe: imagem principal, título, preço, nome do prédio de origem (ou "Seu prédio"), distância aproximada, selo de verificado e tempo desde a publicação.
-- **RN-074** — O usuário não vê os próprios anúncios no feed (eles ficam em "Meus anúncios").
+- **RN-074** — Os próprios anúncios ativos aparecem no feed, como para os vizinhos, com a marca "Seu anúncio" e sem a opção de favoritar. A gestão (editar, pausar, renovar) continua em "Meus anúncios".
 - **RN-075** — Anúncios de usuários **bloqueados** pelo usuário não aparecem para ele, e vice-versa.
 - **RN-076** — **Alertas de busca:** o usuário pode salvar uma busca (ex.: "manicure até 2 km") e receber notificação quando surgir anúncio compatível.
 
