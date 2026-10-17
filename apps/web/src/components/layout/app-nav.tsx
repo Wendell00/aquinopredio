@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { buttonClasses } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useUnread } from "@/features/notifications/hooks/use-unread";
 import { cn } from "@/lib/cn";
@@ -52,12 +53,22 @@ export function AppNav({ role }: { role: UserRole }): React.JSX.Element {
       <div className="hidden px-6 pt-6 lg:block">
         <Logo href="/inicio" />
       </div>
-      <ul className="mx-auto flex max-w-[34rem] items-stretch justify-around lg:mt-10 lg:flex-col lg:justify-start lg:gap-1 lg:px-3">
+      {/* No trilho lateral "Anunciar" é a primeira opção; no celular ele fica no centro da barra.
+          Um link separado (em vez de reordenar com CSS) mantém a ordem de foco igual à visual. */}
+      <Link
+        href="/anunciar"
+        aria-current={isActive(pathname, "/anunciar") ? "page" : undefined}
+        className={cn(buttonClasses(), "mx-3 mt-8 hidden lg:flex")}
+      >
+        <Plus className="size-5" aria-hidden strokeWidth={2.4} />
+        Anunciar
+      </Link>
+      <ul className="mx-auto flex max-w-[34rem] items-stretch justify-around lg:mt-4 lg:flex-col lg:justify-start lg:gap-1 lg:px-3">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active = isActive(pathname, href);
           const badge = href === "/conversas" && unread > 0;
           return (
-            <li key={href} className="flex-1 lg:flex-none">
+            <li key={href} className={cn("flex-1 lg:flex-none", primary && "lg:hidden")}>
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}

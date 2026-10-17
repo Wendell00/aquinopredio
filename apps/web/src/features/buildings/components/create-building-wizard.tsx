@@ -100,6 +100,14 @@ export function CreateBuildingWizard({
       : { type: "edificio", ignoreDuplicates: false },
   });
   const [lat, lng] = watch(["lat", "lng"]);
+  const address = watch(["street", "number", "district", "city", "state", "cep"]);
+  const [street, number, district, city, state, cep] = address.map((part) => String(part ?? ""));
+  const fullAddress = {
+    line1: `${street}, ${number}`,
+    line2: [district, city && state ? `${city}/${state}` : city, cep && `CEP ${formatCep(cep)}`]
+      .filter(Boolean)
+      .join(" · "),
+  };
 
   function fail(cause: unknown, fallback: string): void {
     setError(cause instanceof ApiError ? cause.message : fallback);
@@ -218,14 +226,10 @@ export function CreateBuildingWizard({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-6">
-      <button
-        type="button"
-        onClick={back}
-        className="inline-flex items-center gap-1.5 self-start text-sm font-semibold text-ink-soft hover:text-ink"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
+      <Button variant="secondary" size="sm" onClick={back} className="self-start">
+        <ArrowLeft className="size-4.5" aria-hidden />
         Voltar
-      </button>
+      </Button>
 
       {error && <Alert tone="error">{error}</Alert>}
 
@@ -319,6 +323,13 @@ export function CreateBuildingWizard({
       {step === "mapa" && lat !== undefined && lng !== undefined && (
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-extrabold">Confirme o local</h2>
+          <div className="flex items-start gap-3 rounded-xl border border-line bg-white p-4">
+            <MapPin className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
+            <p>
+              <span className="block font-bold">{fullAddress.line1}</span>
+              <span className="block text-sm text-ink-soft">{fullAddress.line2}</span>
+            </p>
+          </div>
           <p className="text-ink-soft">{PRECISION_HINT[precision]}</p>
           <PinMap
             lat={Number(lat)}
@@ -328,9 +339,15 @@ export function CreateBuildingWizard({
               setValue("lng", newLng);
             }}
           />
-          <Button onClick={confirmLocation} loading={busy} className="self-start">
-            O prédio fica aqui
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={confirmLocation} loading={busy}>
+              O prédio fica aqui
+            </Button>
+            <Button variant="secondary" onClick={back}>
+              <ArrowLeft className="size-4.5" aria-hidden />
+              Corrigir endereço
+            </Button>
+          </div>
         </section>
       )}
 
