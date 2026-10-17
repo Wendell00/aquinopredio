@@ -1,7 +1,7 @@
 import type { Category, MyBuilding } from "@repo/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Alert } from "@/components/ui/alert";
+import { BuildingCreatedCelebration } from "@/features/buildings/components/building-created-celebration";
 import { BuildingHeader } from "@/features/buildings/components/building-header";
 import { FeedList } from "@/features/feed/components/feed-list";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
@@ -10,13 +10,8 @@ import { getMe } from "@/lib/session/get-me";
 
 export const metadata: Metadata = { title: "Início — Aqui no Prédio" };
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ cadastro?: string }>;
-}): Promise<React.JSX.Element> {
-  const [params, me, buildings, categories] = await Promise.all([
-    searchParams,
+export default async function HomePage(): Promise<React.JSX.Element> {
+  const [me, buildings, categories] = await Promise.all([
     getMe(),
     serverGet<MyBuilding[]>("/me/buildings"),
     serverGet<Category[]>("/categories"),
@@ -26,11 +21,7 @@ export default async function HomePage({
 
   return (
     <main className="mx-auto flex max-w-[60rem] flex-col gap-6 px-5 py-6">
-      {params.cadastro === "predio" && (
-        <Alert tone="success">
-          Prédio cadastrado! Você já pode anunciar e convidar os vizinhos.
-        </Alert>
-      )}
+      <BuildingCreatedCelebration />
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">{current && <BuildingHeader current={current} />}</div>
         <div className="flex shrink-0 flex-col items-end gap-3">

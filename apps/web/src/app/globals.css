@@ -46,6 +46,94 @@
       transform: translateY(8px);
     }
   }
+
+  /* Comemoração de prédio cadastrado */
+  --color-glow: #ffc65c;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+      transform: scale(1.04);
+    }
+  }
+
+  @keyframes build-up {
+    from {
+      transform: scaleY(0);
+    }
+    70% {
+      transform: scaleY(1.06);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes draw-x {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes window-on {
+    from {
+      background-color: rgb(255 255 255 / 0.18);
+      box-shadow: none;
+    }
+    to {
+      background-color: var(--color-glow);
+      box-shadow: 0 0 12px var(--color-glow);
+    }
+  }
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(24px) scale(0);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-6px) scale(1.15);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes bob {
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes confetti {
+    from {
+      opacity: 1;
+      transform: translate(0, 0) rotate(0);
+    }
+    to {
+      opacity: 0;
+      transform: translate(var(--x), var(--y)) rotate(var(--r));
+    }
+  }
+
+  @keyframes ring {
+    from {
+      opacity: 0.6;
+      transform: scale(0.2);
+    }
+    to {
+      opacity: 0;
+      transform: scale(2.4);
+    }
+  }
 }
 
 @layer base {
