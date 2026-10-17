@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { adImageSchema, adTypeSchema, categorySchema, priceModeSchema } from "./ads";
+import {
+  adAvailabilitySchema,
+  adImageSchema,
+  adTypeSchema,
+  categorySchema,
+  priceModeSchema,
+} from "./ads";
 
 /** Faixas de distância do filtro (RN-072). 0 = só meu prédio. */
 export const FEED_DISTANCES_KM = [0, 1, 3, 5] as const;
@@ -72,7 +78,7 @@ export const adDetailSchema = z.object({
   description: z.string(),
   priceMode: priceModeSchema,
   priceCents: z.number().int().nullable(),
-  availability: z.string().nullable(),
+  availability: adAvailabilitySchema.nullable(),
   tags: z.array(z.string()),
   images: z.array(adImageSchema),
   status: z.string(),

@@ -65,7 +65,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
   - Preço (opcional) com modo: `fixo`, `a_partir_de`, `a_combinar`, `gratuito`.
   - Raio de alcance (obrigatório, padrão 0 km).
   - Formas de contato: chat interno (sempre ativo) e WhatsApp (opcional).
-  - Disponibilidade (opcional, texto livre ou dias/horários).
+  - Disponibilidade (opcional, escolhida numa lista: todos os dias, dias úteis, fins de semana, horário comercial, à noite, a combinar). Detalhes de horário vão na descrição.
   - Prédio de origem (obrigatório; um dos prédios ativos do usuário).
 - **RN-053** — **Criação assistida por IA (opcional):** o usuário pode enviar um texto livre e/ou imagens; a IA retorna um **rascunho** com título, descrição, tipo, categoria, preço sugerido (se mencionado), tags e alertas. O rascunho **nunca é publicado automaticamente** — o usuário sempre revisa, edita e confirma.
 - **RN-054** — O usuário pode pedir à IA para **regerar** o rascunho ou ajustar o tom (`formal`, `amigavel`, `direto`). Cada geração/regeração conta no limite diário (RN-110).

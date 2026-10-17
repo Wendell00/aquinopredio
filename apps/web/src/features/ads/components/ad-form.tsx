@@ -2,8 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AD_AVAILABILITY_LABELS,
   AD_TYPE_LABELS,
   type AdFormOptions,
+  adAvailabilitySchema,
   adTypeSchema,
   type CreateAdInput,
   PRICE_MODE_LABELS,
@@ -42,7 +44,7 @@ const formSchema = z
     radiusKm: z.number(),
     whatsappEnabled: z.boolean(),
     phone: z.string(),
-    availability: z.string().max(200),
+    availability: adAvailabilitySchema.or(z.literal("")),
     tagsText: z.string(),
     images: z.array(z.custom<UploadedImage>()),
   })
@@ -95,7 +97,7 @@ export function toAdInput(values: AdFormValues): Omit<CreateAdInput, "aiDraftId"
     priceCents,
     radiusKm: values.radiusKm,
     whatsappEnabled: values.whatsappEnabled,
-    availability: values.availability.trim() || null,
+    availability: values.availability || null,
     tags: values.tagsText
       .split(",")
       .map((tag) => tag.trim())
@@ -383,18 +385,24 @@ export function AdForm({
 
       <Field
         label="Disponibilidade (opcional)"
-        hint="Ex.: seg a sex, 9h às 18h; encomendas com 2 dias de antecedência"
+        hint="Quando você costuma atender ou entregar. Detalhes vão na descrição."
         error={errors.availability?.message}
       >
         {({ id, describedBy, invalid }) => (
-          <Input
+          <Select
             id={id}
-            maxLength={200}
             aria-describedby={describedBy}
             aria-invalid={invalid || undefined}
             className={cn(toConfirm.includes("disponibilidade") && "border-warn")}
             {...register("availability")}
-          />
+          >
+            <option value="">Não informar</option>
+            {adAvailabilitySchema.options.map((option) => (
+              <option key={option} value={option}>
+                {AD_AVAILABILITY_LABELS[option]}
+              </option>
+            ))}
+          </Select>
         )}
       </Field>
 

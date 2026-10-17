@@ -1,4 +1,4 @@
-import type { AdStatus, AdType, AiTone, PriceMode } from "@repo/shared";
+import type { AdAvailability, AdStatus, AdType, AiTone, PriceMode } from "@repo/shared";
 import {
   Column,
   CreateDateColumn,
@@ -84,7 +84,7 @@ export class Ad {
   whatsappEnabled: boolean;
 
   @Column("text", { nullable: true })
-  availability: string | null;
+  availability: AdAvailability | null;
 
   @Column("text", { array: true })
   tags: string[];

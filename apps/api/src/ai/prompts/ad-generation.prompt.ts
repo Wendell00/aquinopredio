@@ -1,6 +1,7 @@
+import { adAvailabilitySchema } from "@repo/shared";
 import { z } from "zod";
 
-export const AD_GENERATION_PROMPT_VERSION = "ad-generation@2026-10-12";
+export const AD_GENERATION_PROMPT_VERSION = "ad-generation@2026-10-17";
 export const AD_IMPROVE_PROMPT_VERSION = "ad-improve@2026-10-12";
 
 /** Saída da geração (docs §4.1). A categoria é limitada à lista recebida. */
@@ -15,7 +16,7 @@ export function adGenerationOutputSchema(categories: [string, ...string[]]) {
       valor: z.number().nonnegative().nullable(),
     }),
     tags: z.array(z.string()).max(8),
-    disponibilidade: z.string().nullable(),
+    disponibilidade: adAvailabilitySchema.nullable(),
     campos_a_confirmar: z.array(z.string()),
     alertas: z.array(z.string()),
     imagem_principal_sugerida: z.number().int().nullable(),
@@ -46,6 +47,8 @@ Regras obrigatórias:
 - Título: até 80 caracteres, específico (o que é + diferencial real citado). Sem emojis, sem CAIXA ALTA, sem exclamações em excesso.
 - Descrição: 2 a 5 frases curtas com o que foi informado; pode organizar em linhas. Sem dados pessoais (telefone, endereço, apartamento).
 - Tags: até 6 palavras-chave simples, minúsculas.
+- Disponibilidade: escolha uma opção do schema SOMENTE se o morador disse quando atende
+  (ex.: "só sábado e domingo" → "fins_de_semana"; "depois das 19h" → "noites"). Sem menção → null.
 - Se o pedido envolver conteúdo proibido (drogas, armas, medicamentos controlados, conteúdo adulto, animais silvestres,
   pirâmides/apostas, falsificações, dados de terceiros), deixe título e descrição vazios e explique em "alertas".
 - "imagem_principal_sugerida": índice (a partir de 0) da foto mais nítida que mostra melhor o produto/serviço, ou null sem fotos.

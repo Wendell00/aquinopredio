@@ -95,7 +95,7 @@ erDiagram
 | radius_m | int | 0, 500, 1000, 2000, 3000, 5000 |
 | location | geography(Point) | cópia do prédio de origem (desnormalizado p/ consulta) |
 | whatsapp_enabled | bool | |
-| availability | text, nulo | |
+| availability | text, nulo | `todos_os_dias`, `dias_uteis`, `fins_de_semana`, `horario_comercial`, `noites`, `a_combinar` (RN-052) |
 | tags | text[] | |
 | status | enum | RN-061 |
 | ai_generated | bool | métrica |

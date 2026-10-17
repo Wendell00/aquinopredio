@@ -1,6 +1,6 @@
 "use client";
 
-import { AD_TYPE_LABELS, type AdDetail, formatPrice } from "@repo/shared";
+import { AD_AVAILABILITY_LABELS, AD_TYPE_LABELS, type AdDetail, formatPrice } from "@repo/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, Ban, Flag, Heart, MapPin, MessageCircle, Pencil, Share2 } from "lucide-react";
 import Link from "next/link";
@@ -133,7 +133,7 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
         {ad.availability && (
           <section className="flex flex-col gap-1">
             <h2 className="font-bold">Disponibilidade</h2>
-            <p className="text-ink-soft">{ad.availability}</p>
+            <p className="text-ink-soft">{AD_AVAILABILITY_LABELS[ad.availability]}</p>
           </section>
         )}
 

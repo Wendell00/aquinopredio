@@ -27,6 +27,26 @@ export const adStatusSchema = z.enum([
 ]);
 export type AdStatus = z.infer<typeof adStatusSchema>;
 
+/** Disponibilidade do anunciante: lista fixa para o vizinho comparar anúncios de relance. */
+export const adAvailabilitySchema = z.enum([
+  "todos_os_dias",
+  "dias_uteis",
+  "fins_de_semana",
+  "horario_comercial",
+  "noites",
+  "a_combinar",
+]);
+export type AdAvailability = z.infer<typeof adAvailabilitySchema>;
+
+export const AD_AVAILABILITY_LABELS: Record<AdAvailability, string> = {
+  todos_os_dias: "Todos os dias",
+  dias_uteis: "Dias úteis (seg. a sex.)",
+  fins_de_semana: "Fins de semana",
+  horario_comercial: "Horário comercial",
+  noites: "À noite",
+  a_combinar: "A combinar",
+};
+
 export const priceModeSchema = z.enum(["fixo", "a_partir_de", "a_combinar", "gratuito"]);
 export type PriceMode = z.infer<typeof priceModeSchema>;
 
@@ -106,7 +126,7 @@ export const adFieldsSchema = z
     priceCents: z.number().int().min(0).max(100_000_000).nullable(),
     radiusKm: z.number().min(0).max(10),
     whatsappEnabled: z.boolean(),
-    availability: z.string().trim().max(200).nullable(),
+    availability: adAvailabilitySchema.nullable(),
     tags: tagsSchema,
     imageIds: z.array(z.uuid()).max(MAX_AD_IMAGES, `Use no máximo ${MAX_AD_IMAGES} fotos`),
   })
@@ -118,7 +138,6 @@ export const adFieldsSchema = z
   .transform((ad) => ({
     ...ad,
     priceCents: ad.priceMode === "fixo" || ad.priceMode === "a_partir_de" ? ad.priceCents : null,
-    availability: ad.availability || null,
   }));
 
 export const createAdInputSchema = adFieldsSchema.and(
@@ -162,7 +181,7 @@ export const adDraftSchema = z.object({
   priceMode: priceModeSchema.nullable(),
   priceCents: z.number().int().nullable(),
   tags: z.array(z.string()),
-  availability: z.string().nullable(),
+  availability: adAvailabilitySchema.nullable(),
   /** Campos que a IA não pôde inferir e o usuário deve confirmar (RN-056). */
   toConfirm: z.array(z.string()),
   /** Avisos (ex.: conteúdo possivelmente proibido). */
@@ -200,7 +219,7 @@ export const myAdSchema = z.object({
   priceCents: z.number().int().nullable(),
   radiusKm: z.number(),
   whatsappEnabled: z.boolean(),
-  availability: z.string().nullable(),
+  availability: adAvailabilitySchema.nullable(),
   tags: z.array(z.string()),
   images: z.array(adImageSchema),
   status: adStatusSchema,

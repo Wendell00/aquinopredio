@@ -35,15 +35,23 @@ describe("adFieldsSchema (RN-052)", () => {
     priceCents: 1000,
     radiusKm: 0,
     whatsappEnabled: false,
-    availability: "",
+    availability: null,
     tags: ["Bolo", "bolo", "doce"],
     imageIds: [],
   };
 
-  it("normaliza tags e disponibilidade vazia", () => {
+  it("normaliza tags", () => {
     const parsed = adFieldsSchema.parse(valid);
     expect(parsed.tags).toEqual(["bolo", "doce"]);
-    expect(parsed.availability).toBeNull();
+  });
+
+  it("aceita só disponibilidades da lista", () => {
+    expect(adFieldsSchema.safeParse({ ...valid, availability: "fins_de_semana" }).success).toBe(
+      true,
+    );
+    expect(adFieldsSchema.safeParse({ ...valid, availability: "seg a sex 9h" }).success).toBe(
+      false,
+    );
   });
 
   it("exige preço para fixo/a partir de", () => {

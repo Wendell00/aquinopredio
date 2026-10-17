@@ -328,7 +328,7 @@ describe("Anúncios (e2e)", () => {
       await moderate(ad.id);
       const edited = await api
         .patch(`/api/ads/${ad.id}`)
-        .send({ ...input, availability: "chama no zap 11999999999" })
+        .send({ ...input, availability: "noites" })
         .expect(200);
       expect(edited.body.status).toBe("em_moderacao");
     });
