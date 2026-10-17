@@ -76,6 +76,13 @@ export const envSchema = z
       .default("true")
       .transform((value) => value === "true"),
 
+    // Pagamentos (Stripe). Sem as três, a assinatura Pro fica indisponível e todos ficam no Free.
+    STRIPE_SECRET_KEY: optionalString,
+    /** Segredo do endpoint de webhook (`whsec_…`), usado para conferir a assinatura dos eventos. */
+    STRIPE_WEBHOOK_SECRET: optionalString,
+    /** Preço recorrente mensal do plano Pro (`price_…`), criado no painel do Stripe. */
+    STRIPE_PRICE_PRO: optionalString,
+
     // Geolocalização (OpenStreetMap)
     NOMINATIM_URL: z.url().default("https://nominatim.openstreetmap.org"),
     OVERPASS_URL: z.url().default("https://overpass-api.de/api/interpreter"),
@@ -125,6 +132,15 @@ export const envSchema = z
         code: "custom",
         path: ["RESEND_API_KEY"],
         message: "RESEND_API_KEY é obrigatória com MAIL_TRANSPORT=resend",
+      });
+    }
+    const stripe = [env.STRIPE_SECRET_KEY, env.STRIPE_WEBHOOK_SECRET, env.STRIPE_PRICE_PRO];
+    if (stripe.some(Boolean) && !stripe.every(Boolean)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STRIPE_SECRET_KEY"],
+        message:
+          "STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET e STRIPE_PRICE_PRO devem ser definidos juntos",
       });
     }
     if (env.NODE_ENV === "production" && env.MODERATION_WITHOUT_AI === "approve") {

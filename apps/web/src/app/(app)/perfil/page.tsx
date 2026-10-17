@@ -1,4 +1,4 @@
-import type { MyBuilding } from "@repo/shared";
+import { type MyBuilding, PLAN_LABELS } from "@repo/shared";
 import {
   Bell,
   ChevronRight,
@@ -6,6 +6,7 @@ import {
   Heart,
   Megaphone,
   Shield,
+  Sparkles,
   Trash2,
   UserX,
 } from "lucide-react";
@@ -22,6 +23,7 @@ export const metadata: Metadata = { title: "Perfil — Aqui no Prédio" };
 
 const LINKS = [
   { href: "/meus-anuncios", label: "Meus anúncios", icon: Megaphone },
+  { href: "/plano", label: "Seu plano", icon: Sparkles },
   { href: "/favoritos", label: "Favoritos", icon: Heart },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/perfil/bloqueados", label: "Pessoas bloqueadas", icon: UserX },
@@ -63,6 +65,11 @@ export default async function ProfilePage(): Promise<React.JSX.Element> {
               >
                 <Icon className="size-5 text-ink-soft" aria-hidden />
                 <span className="flex-1">{label}</span>
+                {href === "/plano" && (
+                  <span className="rounded-full bg-sand px-2 py-0.5 text-[0.75rem] font-bold text-ink-soft">
+                    {PLAN_LABELS[me.plan]}
+                  </span>
+                )}
                 <ChevronRight className="size-4 text-muted" aria-hidden />
               </Link>
             </li>

@@ -15,11 +15,13 @@ export class AdsScheduler {
     private readonly settings: SettingsService,
   ) {}
 
-  /** RN-063: anúncios ativos expiram ao fim da validade. */
+  /** RN-063: anúncios ativos expiram ao fim da validade — exceto os de quem é Pro (RN-143). */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async expireAds(): Promise<number> {
     const result: [unknown[], number] = await this.dataSource.query(
-      `UPDATE ads SET status = 'expirado', updated_at = now() WHERE status = 'ativo' AND expires_at <= now()`,
+      `UPDATE ads SET status = 'expirado', updated_at = now()
+       WHERE status = 'ativo' AND expires_at <= now()
+         AND user_id IN (SELECT id FROM users WHERE plan = 'free')`,
     );
     const count = result[1] ?? 0;
     if (count) this.logger.log(`${count} anúncio(s) expirado(s)`);
@@ -34,6 +36,7 @@ export class AdsScheduler {
       await this.dataSource.query(
         `UPDATE ads SET expiry_warned_at = now()
        WHERE status = 'ativo' AND expiry_warned_at IS NULL AND expires_at <= now() + make_interval(days => $1)
+         AND user_id IN (SELECT id FROM users WHERE plan = 'free')
        RETURNING id, user_id, title`,
         [days],
       );

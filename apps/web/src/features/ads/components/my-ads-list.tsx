@@ -10,6 +10,7 @@ import {
   Pencil,
   Play,
   RefreshCw,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import Image from "next/image";
@@ -17,8 +18,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonClasses } from "@/components/ui/button";
+import { FeaturedBadge } from "@/features/billing/components/featured-badge";
 import { cn } from "@/lib/cn";
-import { useAdAction, useDeleteAd, useMyAds } from "../hooks/use-ads";
+import { useAdAction, useDeleteAd, useMyAds, useSetFeatured } from "../hooks/use-ads";
 
 const STATUS: Record<AdStatus, { label: string; className: string }> = {
   rascunho: { label: "Rascunho", className: "bg-sand text-ink-soft" },
@@ -38,10 +40,11 @@ function daysUntil(iso: string | null): number | null {
 function MyAdActions({ ad, expiresIn }: { ad: MyAd; expiresIn: number | null }): React.JSX.Element {
   const action = useAdAction();
   const remove = useDeleteAd();
+  const featured = useSetFeatured();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const canBump =
     ad.status === "ativo" && ad.canBumpAt !== null && new Date(ad.canBumpAt) <= new Date();
-  const busy = action.isPending || remove.isPending;
+  const busy = action.isPending || remove.isPending || featured.isPending;
 
   return (
     <div className="mt-1 flex flex-wrap gap-2">
@@ -83,6 +86,18 @@ function MyAdActions({ ad, expiresIn }: { ad: MyAd; expiresIn: number | null }):
           onClick={() => action.mutate({ id: ad.id, action: "renew" })}
         >
           <RefreshCw className="size-4" aria-hidden /> Renovar
+        </Button>
+      )}
+      {(ad.canFeature || ad.featured) && (
+        <Button
+          variant={ad.featured ? "secondary" : "primary"}
+          size="sm"
+          disabled={busy}
+          aria-pressed={ad.featured}
+          onClick={() => featured.mutate({ id: ad.id, featured: !ad.featured })}
+        >
+          <Sparkles className="size-4" aria-hidden />
+          {ad.featured ? "Tirar destaque" : "Destacar"}
         </Button>
       )}
       {canBump && (
@@ -150,6 +165,7 @@ function MyAdCard({ ad, highlight }: { ad: MyAd; highlight: boolean }): React.JS
           >
             {status.label}
           </span>
+          {ad.featured && <FeaturedBadge />}
           <span className="text-sm text-muted">{ad.category.name}</span>
         </div>
         <h2 className="text-[1.05rem] font-bold leading-snug">{ad.title}</h2>
@@ -162,6 +178,9 @@ function MyAdCard({ ad, highlight }: { ad: MyAd; highlight: boolean }): React.JS
           <p className="text-sm text-ink-soft">
             Estamos conferindo o anúncio. Ele aparece para os vizinhos assim que for aprovado.
           </p>
+        )}
+        {ad.status === "ativo" && ad.expiresAt === null && (
+          <p className="text-sm text-muted">Não expira enquanto você for Pro</p>
         )}
         {ad.status === "ativo" && expiresIn !== null && (
           <p className={cn("text-sm", expiresIn <= 3 ? "font-semibold text-warn" : "text-muted")}>

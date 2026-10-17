@@ -20,6 +20,7 @@ export function toMe(user: User): Me {
     phone: user.phone,
     status: user.status,
     role: user.role,
+    plan: user.plan,
     primaryBuildingId: user.primaryBuildingId,
     termsAcceptedAt: user.termsAcceptedAt?.toISOString() ?? null,
     suspendedUntil: user.suspendedUntil?.toISOString() ?? null,

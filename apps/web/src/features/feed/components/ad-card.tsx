@@ -4,6 +4,7 @@ import { AD_TYPE_LABELS, type FeedAd, formatPrice } from "@repo/shared";
 import { BadgeCheck, Heart, ImageOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { FeaturedBadge } from "@/features/billing/components/featured-badge";
 import { cn } from "@/lib/cn";
 import { formatDistance, timeAgo } from "@/lib/format";
 import { useToggleFavorite } from "../hooks/use-feed";
@@ -39,6 +40,7 @@ export function AdCard({
           </span>
         )}
         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+          {ad.featured && <FeaturedBadge />}
           {ad.isMine && (
             <span className="rounded-full bg-brand px-2.5 py-0.5 text-[0.72rem] font-bold text-white">
               Seu anúncio

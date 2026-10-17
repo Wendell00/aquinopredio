@@ -131,6 +131,19 @@ export class AdsController {
     return this.ads.bump(user, id);
   }
 
+  /** Destaque do plano Pro (RN-144). */
+  @Post(":id/feature")
+  @HttpCode(200)
+  feature(@CurrentUser() user: User, @Param("id", ParseUUIDPipe) id: string): Promise<MyAd> {
+    return this.ads.feature(user, id);
+  }
+
+  @Delete(":id/feature")
+  @HttpCode(200)
+  unfeature(@CurrentUser() user: User, @Param("id", ParseUUIDPipe) id: string): Promise<MyAd> {
+    return this.ads.unfeature(user, id);
+  }
+
   @Delete(":id")
   @HttpCode(204)
   async remove(@CurrentUser() user: User, @Param("id", ParseUUIDPipe) id: string): Promise<void> {

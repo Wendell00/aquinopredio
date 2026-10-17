@@ -14,9 +14,15 @@ export const SETTINGS_DEFAULTS = {
   /** RN-033 */
   "buildings.archiveAfterDays": 180,
   /** RN-057 */
-  "ads.radiiKm": [0, 0.5, 1, 2, 3, 5],
-  /** RN-059 */
-  "ads.unverifiedMaxRadiusKm": 1,
+  "ads.radiiKm": [0, 0.5, 1, 2, 3, 5, 10],
+  /** RN-141: raio máximo do plano Free */
+  "plans.freeMaxRadiusKm": 1,
+  /** RN-142: raio máximo do plano Pro */
+  "plans.proMaxRadiusKm": 10,
+  /** RN-144: anúncios em destaque ao mesmo tempo no Pro */
+  "plans.proFeaturedAds": 1,
+  /** RN-140: preço exibido (o valor cobrado é o do preço no Stripe) */
+  "plans.proPriceCents": 5000,
   /** RN-063 */
   "ads.activeDays": 30,
   "ads.expiryWarningDays": 3,

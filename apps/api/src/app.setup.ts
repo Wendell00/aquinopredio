@@ -2,11 +2,12 @@ import type { INestApplication } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { toNodeHandler } from "better-auth/node";
-import { json } from "express";
+import { json, raw } from "express";
 import helmet from "helmet";
 import type { Auth } from "./auth/auth";
 import { AUTH_BASE_PATH } from "./auth/auth";
 import { AUTH } from "./auth/auth.constants";
+import { BILLING_WEBHOOK_PATH } from "./billing/billing.controller";
 import { originCheck } from "./common/middleware/origin-check";
 import { type Env, webOrigins } from "./config/env";
 
@@ -33,6 +34,8 @@ export function setupApp(app: INestApplication): void {
   app.use(originCheck(origins));
   expressApp.all(`${AUTH_BASE_PATH}/*splat`, toNodeHandler(app.get<Auth>(AUTH)));
 
+  // O Stripe assina o corpo exato: o webhook recebe os bytes crus (o parser de JSON pula esta rota).
+  app.use(BILLING_WEBHOOK_PATH, raw({ type: "application/json", limit: "1mb" }));
   app.use(json({ limit: "100kb" }));
   app.setGlobalPrefix("api");
   app.enableShutdownHooks();

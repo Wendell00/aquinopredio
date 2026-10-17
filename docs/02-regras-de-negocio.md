@@ -72,9 +72,9 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-056** — A IA não pode inventar informações que o usuário não forneceu (preço, horários, garantias). Dados ausentes devem vir como campos vazios ou como sugestão marcada "confirme este dado".
 
 ### Raio de alcance
-- **RN-057** — Opções de raio: **0 (só meu prédio), 0,5, 1, 2, 3 e 5 km** `[configurável]`. O raio é calculado a partir das coordenadas do prédio de origem do anúncio.
+- **RN-057** — Opções de raio: **0 (só meu prédio), 0,5, 1, 2, 3, 5 e 10 km** `[configurável]`, limitadas pelo plano (RN-141, RN-142). O raio é calculado a partir das coordenadas do prédio de origem do anúncio.
 - **RN-058** — Um anúncio é visível para um usuário do prédio **B** se: o anúncio estiver `ativo` **e** (`prédio_origem == B` **ou** `distância(prédio_origem, B) <= raio_do_anúncio`).
-- **RN-059** — Prédios com status `pendente_revisao` só publicam com raio 0 (RN-028). Usuários não verificados (sem selo) podem usar raio até **1 km** `[configurável]`; raio acima disso exige selo de morador verificado.
+- **RN-059** — Prédios com status `pendente_revisao` só publicam com raio 0 (RN-028). Fora isso, o raio máximo é definido pelo **plano** (RN-141, RN-142), não pelo selo de verificado.
 
 ### Categorias
 - **RN-060** — Categorias iniciais: Alimentação, Beleza e Estética, Saúde e Bem-estar, Aulas e Educação, Reparos e Manutenção, Limpeza e Organização, Pets, Crianças e Babás, Tecnologia, Moda e Acessórios, Casa e Decoração, Eletrônicos, Veículos e Vagas de Garagem, Eventos e Festas, Transporte e Caronas, Outros. A lista é gerenciada pelo admin da plataforma.
@@ -82,7 +82,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 ### Ciclo de vida
 - **RN-061** — Status do anúncio: `rascunho`, `em_moderacao`, `ativo`, `pausado`, `expirado`, `removido` (pela moderação), `excluido` (pelo usuário).
 - **RN-062** — Ao publicar, o anúncio passa por **moderação automática por IA** (RN-090). Aprovado → `ativo`. Suspeito → `em_moderacao` (revisão manual). Proibido → `removido` com motivo.
-- **RN-063** — Anúncios ficam ativos por **30 dias** `[configurável]`. Três dias antes de expirar, o anunciante recebe notificação para **renovar** (renovação gratuita, 1 clique, reinicia os 30 dias).
+- **RN-063** — No plano Free, anúncios ficam ativos por **30 dias** `[configurável]` (no Pro não expiram — RN-143). Três dias antes de expirar, o anunciante recebe notificação para **renovar** (renovação gratuita, 1 clique, reinicia os 30 dias).
 - **RN-064** — O anunciante pode pausar, reativar, editar ou excluir o anúncio a qualquer momento. Editar título, descrição ou imagens dispara nova moderação.
 - **RN-065** — Limite de anúncios ativos simultâneos por usuário: **5** para morador e **10** para morador verificado `[configurável]`.
 - **RN-066** — Não é permitido publicar anúncios **duplicados** (mesmo usuário, texto com similaridade > 90%) simultaneamente ativos.
@@ -138,3 +138,14 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-132** — Imagens enviadas têm **metadados EXIF removidos** (inclui GPS) antes de serem armazenadas.
 - **RN-133** — O usuário pode exportar seus dados (portabilidade) em JSON.
 - **RN-134** — Conteúdo enviado à IA não é usado para treinar modelos (configuração do provedor) e o uso de IA é informado na Política de Privacidade.
+
+## 2.10 Planos e assinatura (RN-140 a RN-149)
+
+- **RN-140** — Há dois planos: **Free** (padrão, grátis) e **Pro** (assinatura mensal, **R$ 50** `[configurável]` — o valor cobrado é o do preço cadastrado no Stripe). A assinatura é feita pelo **Stripe Checkout** e gerenciada no portal do cliente do Stripe (cartão, notas, cancelamento).
+- **RN-141** — **Free:** raio máximo de **1 km** `[configurável]`, **sem destaque**, anúncios saem do ar em **30 dias** (renovação grátis, RN-063).
+- **RN-142** — **Pro:** raio máximo de **10 km** `[configurável]`.
+- **RN-143** — **Pro:** anúncios **não expiram** enquanto a assinatura estiver valendo.
+- **RN-144** — **Pro:** **1 anúncio em destaque** `[configurável]` por vez, fixado no topo do feed de quem pode vê-lo, com o selo "Destaque". Destacar outro anúncio tira o destaque do anterior.
+- **RN-145** — O Pro vale com a assinatura `active`, `trialing` ou `past_due` (o Stripe ainda está tentando cobrar). Ao voltar para o Free, os anúncios passam às regras do Free na hora: raio reduzido a 1 km, destaque retirado e prazo de 30 dias contado a partir da troca. O usuário é notificado.
+- **RN-146** — O estado da assinatura chega por **webhook assinado** do Stripe; o app sempre consulta a assinatura atual no Stripe antes de mudar o plano (eventos repetidos ou fora de ordem não causam erro). Excluir a conta cancela a assinatura na hora (RN-008).
+

@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AD_AVAILABILITY_LABELS,
+  AD_RADII_KM,
   AD_TYPE_LABELS,
   type AdFormOptions,
   adAvailabilitySchema,
@@ -14,6 +15,7 @@ import {
   type UploadedImage,
 } from "@repo/shared";
 import { Lock, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -140,7 +142,11 @@ export function AdForm({
     name: ["buildingId", "priceMode", "whatsappEnabled", "title", "description"],
   });
   const building = options.buildings.find((item) => item.id === buildingId);
-  const allRadii = [0, 0.5, 1, 2, 3, 5];
+  const allRadii = AD_RADII_KM.filter((km) => km <= options.proMaxRadiusKm);
+  const lockedByPlan = (km: number) =>
+    options.plan === "free" &&
+    Boolean(building?.buildingVerified) &&
+    !building?.allowedRadiiKm.includes(km);
 
   async function improve(): Promise<void> {
     setImproving(true);
@@ -368,6 +374,11 @@ export function AdForm({
                   >
                     {!allowed && <Lock className="size-3.5" aria-hidden />}
                     {RADIUS_LABEL(km)}
+                    {lockedByPlan(km) && (
+                      <span className="rounded-full bg-brand-soft px-1.5 text-[0.7rem] font-bold text-brand-dark">
+                        Pro
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -375,11 +386,19 @@ export function AdForm({
           )}
         />
         <p className="text-[0.82rem] text-muted">
-          {!building?.buildingVerified
-            ? "Enquanto o prédio está em verificação, o anúncio aparece só para quem mora nele."
-            : !building.residentVerified
-              ? "Com o selo de morador verificado você pode alcançar até 5 km."
-              : "Vizinhos dos prédios dentro do raio escolhido verão o seu anúncio."}
+          {!building?.buildingVerified ? (
+            "Enquanto o prédio está em verificação, o anúncio aparece só para quem mora nele."
+          ) : options.plan === "free" ? (
+            <>
+              No plano Free o alcance vai até {RADIUS_LABEL(Math.max(...building.allowedRadiiKm))}.{" "}
+              <Link href="/plano" className="font-semibold text-brand-dark underline">
+                Com o Pro, até {RADIUS_LABEL(options.proMaxRadiusKm)}
+              </Link>
+              .
+            </>
+          ) : (
+            "Vizinhos dos prédios dentro do raio escolhido verão o seu anúncio."
+          )}
         </p>
       </fieldset>
 

@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import { DataSource } from "typeorm";
 import { AuditService } from "../audit/audit.service";
+import { BillingService } from "../billing/billing.service";
 import { StorageService } from "../storage/storage.service";
 import type { User } from "./user.entity";
 
@@ -14,6 +15,7 @@ export class AccountService {
     private readonly dataSource: DataSource,
     private readonly storage: StorageService,
     private readonly audit: AuditService,
+    private readonly billing: BillingService,
   ) {}
 
   async export(user: User): Promise<Record<string, unknown>> {
@@ -59,6 +61,7 @@ export class AccountService {
         code: "FRESH_LOGIN_REQUIRED",
       });
     }
+    await this.billing.cancelForDeletedAccount(user.id);
     const uploads: { key: string; thumb_key: string }[] = await this.dataSource.query(
       `SELECT key, thumb_key FROM uploads WHERE owner_id = $1`,
       [user.id],

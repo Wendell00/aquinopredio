@@ -1,4 +1,4 @@
-import type { NotificationPrefs, UserRole, UserStatus } from "@repo/shared";
+import type { NotificationPrefs, Plan, UserRole, UserStatus } from "@repo/shared";
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from "typeorm";
 
 /** Tabela `users`: identidade (Better Auth) + colunas do app. Linhas são criadas pelo Better Auth. */
@@ -36,6 +36,10 @@ export class User {
 
   @Column({ type: "enum", enum: ["user", "platform_admin"], enumName: "user_role" })
   role: UserRole;
+
+  /** Cópia do estado da assinatura no Stripe (RN-140). */
+  @Column({ type: "enum", enum: ["free", "pro"], enumName: "user_plan" })
+  plan: Plan;
 
   @Column("uuid", { nullable: true })
   primaryBuildingId: string | null;

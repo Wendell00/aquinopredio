@@ -11,6 +11,7 @@ import { AiModule } from "./ai/ai.module";
 import { AuditModule } from "./audit/audit.service";
 import { AuthGuard } from "./auth/auth.guard";
 import { AuthModule } from "./auth/auth.module";
+import { BillingModule } from "./billing/billing.module";
 import { BuildingsModule } from "./buildings/buildings.module";
 import { ChatModule } from "./chat/chat.module";
 import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
@@ -64,6 +65,7 @@ import { UsersModule } from "./users/users.module";
     BuildingsModule,
     AuditModule,
     NotificationsModule,
+    BillingModule,
     AdsModule,
     FeedModule,
     ChatModule,

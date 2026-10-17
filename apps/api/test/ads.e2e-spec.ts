@@ -130,7 +130,7 @@ describe("Anúncios (e2e)", () => {
     });
   });
 
-  it("limita o raio enquanto o prédio está em verificação e sem selo (RN-028, RN-059)", async () => {
+  it("limita o raio enquanto o prédio está em verificação e pelo plano (RN-028, RN-141, RN-142)", async () => {
     const { cookie, buildingId } = await resident(app);
     const api = as(app, cookie);
     const pending = await api.post("/api/ads").send(adInput(buildingId, { radiusKm: 1 }));
@@ -142,17 +142,21 @@ describe("Anúncios (e2e)", () => {
       .post("/api/ads")
       .send(adInput(buildingId, { radiusKm: 1 }))
       .expect(201);
+    // Selo de verificado não muda o raio: quem decide é o plano.
+    await db.query(`UPDATE building_memberships SET verified_at = now() WHERE building_id = $1`, [
+      buildingId,
+    ]);
     const far = await api.post("/api/ads").send(adInput(buildingId, { radiusKm: 3 }));
     expect(far.status).toBe(403);
-    expect(far.body.message).toMatch(/selo/);
+    expect(far.body.message).toMatch(/Pro/);
 
     await db.query(
-      `UPDATE building_memberships SET verified_at = now(), verified_method = 'admin' WHERE building_id = $1`,
+      `UPDATE users SET plan = 'pro' WHERE id = (SELECT created_by FROM buildings WHERE id = $1)`,
       [buildingId],
     );
     await api
       .post("/api/ads")
-      .send(adInput(buildingId, { radiusKm: 3 }))
+      .send(adInput(buildingId, { radiusKm: 10 }))
       .expect(201);
   });
 

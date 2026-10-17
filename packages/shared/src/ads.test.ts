@@ -1,17 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { AD_RADII_KM, adFieldsSchema, adRadiusKmSchema, allowedRadii, formatPrice } from "./ads";
+import {
+  AD_RADII_KM,
+  adFieldsSchema,
+  adRadiusKmSchema,
+  allowedRadii,
+  FREE_MAX_RADIUS_KM,
+  formatPrice,
+  PRO_MAX_RADIUS_KM,
+} from "./ads";
 
 describe("allowedRadii", () => {
-  it("limita a raio 0 enquanto o prédio não é verificado (RN-028)", () => {
-    expect(allowedRadii({ buildingVerified: false, residentVerified: true })).toEqual([0]);
+  it("limita a raio 0 enquanto o prédio não é verificado (RN-028), mesmo no Pro", () => {
+    expect(allowedRadii({ buildingVerified: false, maxRadiusKm: PRO_MAX_RADIUS_KM })).toEqual([0]);
   });
 
-  it("limita a 1 km para morador sem selo (RN-059)", () => {
-    expect(allowedRadii({ buildingVerified: true, residentVerified: false })).toEqual([0, 0.5, 1]);
+  it("limita a 1 km no plano Free (RN-141)", () => {
+    expect(allowedRadii({ buildingVerified: true, maxRadiusKm: FREE_MAX_RADIUS_KM })).toEqual([
+      0, 0.5, 1,
+    ]);
   });
 
-  it("libera todos os raios para morador verificado", () => {
-    expect(allowedRadii({ buildingVerified: true, residentVerified: true })).toEqual([
+  it("libera até 10 km no plano Pro (RN-142)", () => {
+    expect(allowedRadii({ buildingVerified: true, maxRadiusKm: PRO_MAX_RADIUS_KM })).toEqual([
       ...AD_RADII_KM,
     ]);
   });

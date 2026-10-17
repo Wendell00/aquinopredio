@@ -2,6 +2,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConditionalModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { BillingModule } from "../billing/billing.module";
 import { Ad, AdImage, AdModeration, AiAdDraft, Category } from "./ad.entity";
 import { AdDraftsService } from "./ad-drafts.service";
 import { AdsController, CategoriesController } from "./ads.controller";
@@ -14,6 +15,7 @@ import { AD_MODERATION_QUEUE } from "./moderation/moderation.queue";
   imports: [
     TypeOrmModule.forFeature([Ad, AdImage, Category, AiAdDraft, AdModeration]),
     BullModule.registerQueue({ name: AD_MODERATION_QUEUE }),
+    BillingModule,
     ConditionalModule.registerWhen(AdsWorkersModule, (env) => env.WORKERS_ENABLED !== "false"),
   ],
   controllers: [CategoriesController, AdsController],

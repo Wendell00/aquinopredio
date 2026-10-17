@@ -71,7 +71,7 @@ const STEPS = [
   },
   {
     title: "Escolha até onde vai",
-    text: "Só o seu prédio ou os prédios vizinhos num raio de até 5 km. Os interessados chamam você no chat ou no WhatsApp.",
+    text: "Só o seu prédio ou os prédios vizinhos num raio de até 1 km (até 10 km no plano Pro). Os interessados chamam você no chat ou no WhatsApp.",
   },
 ];
 
@@ -125,7 +125,7 @@ const FAQ = [
   },
   {
     q: "Quem consegue ver meu anúncio?",
-    a: "Os moradores do seu prédio e, se você quiser, dos prédios vizinhos dentro do raio escolhido (até 5 km).",
+    a: "Os moradores do seu prédio e, se você quiser, dos prédios vizinhos dentro do raio escolhido (até 1 km no plano grátis e até 10 km no Pro).",
   },
   {
     q: "Meus vizinhos vão ver meu apartamento ou telefone?",

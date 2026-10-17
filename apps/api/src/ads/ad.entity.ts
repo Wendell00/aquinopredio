@@ -108,6 +108,10 @@ export class Ad {
   @Column("timestamptz", { nullable: true })
   bumpedAt: Date | null;
 
+  /** Destaque do plano Pro (RN-144); limpo ao voltar para o Free. */
+  @Column("timestamptz", { nullable: true })
+  featuredAt: Date | null;
+
   @Column("timestamptz", { nullable: true })
   publishedAt: Date | null;
 

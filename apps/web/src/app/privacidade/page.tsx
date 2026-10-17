@@ -36,6 +36,10 @@ export default function PrivacyPage(): React.JSX.Element {
           moderação, sem uso para treinamento.
         </li>
         <li>OpenStreetMap e ViaCEP: endereço do prédio, para localizar e validar.</li>
+        <li>
+          Stripe: se você assinar o plano Pro, nome, e-mail e dados de pagamento. O cartão é
+          digitado no Stripe e nunca passa pelos nossos servidores.
+        </li>
         <li>Armazenamento de imagens e envio de e-mails: operadores que seguem esta política.</li>
       </ul>
       <h2>Seus direitos</h2>

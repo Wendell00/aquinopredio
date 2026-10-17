@@ -40,6 +40,7 @@ erDiagram
 | suspended_until | timestamptz, nulo | RN-095 |
 | primary_building_id | FK buildings, nulo | RN-035 |
 | role | enum | `user`, `platform_admin` |
+| plan | enum | `free`, `pro` — cópia do estado da assinatura (RN-140) |
 | terms_accepted_at | timestamptz | |
 | notification_prefs | jsonb | RN-122 |
 
@@ -97,6 +98,7 @@ erDiagram
 | availability | text, nulo | `todos_os_dias`, `dias_uteis`, `fins_de_semana`, `horario_comercial`, `noites`, `a_combinar` (RN-052) |
 | tags | text[] | |
 | status | enum | RN-061 |
+| featured_at | timestamptz, nulo | destaque do plano Pro (RN-144) |
 | ai_generated | bool | métrica |
 | expires_at | timestamptz | RN-063 |
 | bumped_at | timestamptz, nulo | RN-067 |
@@ -145,3 +147,13 @@ ORDER BY (a.building_id = b.id) DESC,
 ```
 
 > Para performance, pré-filtrar com `ST_DWithin(a.location, b.location, 5000)` (raio máximo global) usando o índice GIST antes de aplicar o raio de cada anúncio.
+
+### `subscriptions`
+| Campo | Tipo | Observação |
+|-------|------|-----------|
+| user_id | PK, FK users | uma linha por usuário |
+| stripe_customer_id | text, único | cliente no Stripe |
+| stripe_subscription_id | text, único, nulo | assinatura atual |
+| status | text, nulo | status do Stripe (`active`, `past_due`, `canceled`…) |
+| current_period_end | timestamptz, nulo | fim do período pago |
+| cancel_at_period_end | bool | cancelamento agendado |

@@ -1,4 +1,10 @@
 import { randomBytes } from "node:crypto";
+import {
+  type BillingEvent,
+  InvalidWebhookError,
+  type StripeGateway,
+  type SubscriptionSnapshot,
+} from "../../src/billing/stripe.gateway";
 import type { GeoService } from "../../src/geo/geo.service";
 
 /** Geo sem rede: os e2e não dependem do OpenStreetMap. */
@@ -128,4 +134,31 @@ export async function sampleJpeg(): Promise<Buffer> {
   return sharp({ create: { width: 800, height: 600, channels: 3, background: "#1e7f5c" } })
     .jpeg()
     .toBuffer();
+}
+
+/** Stripe sem rede: assinaturas ficam num mapa e o webhook aceita só a assinatura de teste. */
+export const FAKE_STRIPE_SIGNATURE = "assinatura-de-teste";
+
+export function createFakeStripe() {
+  const subscriptions = new Map<string, SubscriptionSnapshot>();
+  const gateway: Omit<StripeGateway, "enabled"> & { enabled: boolean } = {
+    enabled: true,
+    createCustomer: async ({ userId }) => `cus_${userId.replaceAll("-", "")}`,
+    createCheckout: async ({ userId }) => `https://checkout.stripe.test/c/${userId}`,
+    createPortal: async ({ customerId }) => `https://billing.stripe.test/p/${customerId}`,
+    parseWebhook: (rawBody, signature) => {
+      if (signature !== FAKE_STRIPE_SIGNATURE) throw new InvalidWebhookError("assinatura");
+      return JSON.parse(rawBody.toString("utf8")) as BillingEvent;
+    },
+    retrieveSubscription: async (id) => {
+      const found = subscriptions.get(id);
+      if (!found) throw new Error(`assinatura ${id} não existe no fake`);
+      return found;
+    },
+    cancelSubscription: async (id) => {
+      const found = subscriptions.get(id);
+      if (found) subscriptions.set(id, { ...found, status: "canceled" });
+    },
+  };
+  return { gateway, subscriptions };
 }

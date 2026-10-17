@@ -1,11 +1,13 @@
 import { z } from "zod";
+import { planSchema } from "./billing";
 
 /** Opções de raio de alcance de um anúncio, em km (RN-057). 0 = só o próprio prédio. */
-export const AD_RADII_KM = [0, 0.5, 1, 2, 3, 5] as const;
+export const AD_RADII_KM = [0, 0.5, 1, 2, 3, 5, 10] as const;
 export type AdRadiusKm = (typeof AD_RADII_KM)[number];
 
-/** Raio máximo para quem ainda não tem selo de morador verificado (RN-059). */
-export const UNVERIFIED_MAX_RADIUS_KM: AdRadiusKm = 1;
+/** Raio máximo por plano (RN-059, RN-141): Free até 1 km, Pro até 10 km. */
+export const FREE_MAX_RADIUS_KM: AdRadiusKm = 1;
+export const PRO_MAX_RADIUS_KM: AdRadiusKm = 10;
 
 export const adTypeSchema = z.enum(["servico", "produto", "procura"]);
 export type AdType = z.infer<typeof adTypeSchema>;
@@ -68,18 +70,15 @@ export const AI_TONE_LABELS: Record<AiTone, string> = {
 
 export const adRadiusKmSchema = z.literal([...AD_RADII_KM]);
 
-/** Raios permitidos para o anunciante, considerando prédio pendente (RN-028) e selo de verificado (RN-059). */
+/** Raios permitidos para o anunciante: prédio pendente só publica no próprio prédio (RN-028); o resto depende do plano (RN-059). */
 export function allowedRadii(options: {
   buildingVerified: boolean;
-  residentVerified: boolean;
+  maxRadiusKm: number;
   radii?: readonly number[];
-  unverifiedMaxKm?: number;
 }): number[] {
   const radii = options.radii ?? AD_RADII_KM;
   if (!options.buildingVerified) return [0];
-  if (options.residentVerified) return [...radii];
-  const max = options.unverifiedMaxKm ?? UNVERIFIED_MAX_RADIUS_KM;
-  return radii.filter((km) => km <= max);
+  return radii.filter((km) => km <= options.maxRadiusKm);
 }
 
 export const MAX_AD_IMAGES = 6;
@@ -225,9 +224,14 @@ export const myAdSchema = z.object({
   status: adStatusSchema,
   statusReason: z.string().nullable(),
   aiGenerated: z.boolean(),
+  /** Nulo também quando o plano Pro mantém o anúncio no ar sem prazo (RN-143). */
   expiresAt: z.iso.datetime().nullable(),
   bumpedAt: z.iso.datetime().nullable(),
   canBumpAt: z.iso.datetime().nullable(),
+  /** Anúncio em destaque no topo do feed (RN-144). */
+  featured: z.boolean(),
+  /** Pro com anúncio ativo pode destacá-lo. */
+  canFeature: z.boolean(),
   publishedAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   stats: z.object({ favorites: z.number().int(), conversations: z.number().int() }),
@@ -246,6 +250,9 @@ export const adFormOptionsSchema = z.object({
       residentVerified: z.boolean(),
     }),
   ),
+  plan: planSchema,
+  /** Raio máximo do Pro, para mostrar o que a assinatura libera (RN-142). */
+  proMaxRadiusKm: z.number(),
   activeAds: z.number().int(),
   maxActiveAds: z.number().int(),
   aiEnabled: z.boolean(),

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { planSchema } from "./billing";
 
 export const userStatusSchema = z.enum([
   "onboarding_pendente",
@@ -130,6 +131,7 @@ export const notificationTypeSchema = z.enum([
   "novidades_predio",
   "favorito_alterado",
   "denuncia_resolvida",
+  "plano_atualizado",
 ]);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
 
@@ -157,6 +159,7 @@ export const meSchema = z.object({
   phone: z.string().nullable(),
   status: userStatusSchema,
   role: userRoleSchema,
+  plan: planSchema,
   primaryBuildingId: z.uuid().nullable(),
   termsAcceptedAt: z.iso.datetime().nullable(),
   suspendedUntil: z.iso.datetime().nullable(),

@@ -22,9 +22,9 @@ Pendências conhecidas antes do lançamento: confirmação de telefone por SMS/W
 - "Subir anúncio".
 
 ## Fase 3 — Monetização
-- **Destaque pago**: anúncio fixado no topo e raio estendido (até 10 km).
-- **Plano Pro** para prestadores frequentes: mais anúncios ativos, estatísticas (visualizações, cliques no WhatsApp), agenda de disponibilidade.
-- Pagamento via Pix (Mercado Pago/Stripe).
+- ✅ **Plano Pro** pelo Stripe (out/2026): raio até 10 km, 1 anúncio em destaque no topo, anúncios sem prazo (RN-140 a RN-146).
+- Pro: estatísticas (visualizações, cliques no WhatsApp), mais anúncios ativos.
+- Pix como forma de pagamento da assinatura.
 
 ## Fase 4 — Comunidade do condomínio
 - Painel do síndico: mural de avisos oficiais, enquetes.

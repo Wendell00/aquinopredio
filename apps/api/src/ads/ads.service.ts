@@ -15,12 +15,14 @@ import {
   type CreateAdInput,
   createAdInputSchema,
   type MyAd,
+  type Plan,
   type UpdateAdInput,
   updateAdInputSchema,
 } from "@repo/shared";
 import type { Queue } from "bullmq";
 import { DataSource, In, Not, Repository } from "typeorm";
 import { AiService } from "../ai/ai.service";
+import { PlansService } from "../billing/plans.service";
 import { SettingsService } from "../settings/settings.service";
 import { UploadsService } from "../uploads/uploads.service";
 import type { User } from "../users/user.entity";
@@ -50,6 +52,7 @@ export class AdsService {
     private readonly uploads: UploadsService,
     private readonly drafts: AdDraftsService,
     private readonly ai: AiService,
+    private readonly plans: PlansService,
     @InjectQueue(AD_MODERATION_QUEUE) private readonly moderationQueue: Queue<AdModerationJob>,
   ) {}
 
@@ -59,13 +62,15 @@ export class AdsService {
 
   /** Tudo que o formulário de anúncio precisa saber de antemão. */
   async formOptions(user: User): Promise<AdFormOptions> {
-    const [categories, buildings, activeAds, maxActiveAds, aiRemainingToday] = await Promise.all([
-      this.listCategories(),
-      this.publishableBuildings(user.id),
-      this.ads.countBy({ userId: user.id, status: In(COUNTS_AS_ACTIVE) }),
-      this.maxActiveAds(user.id),
-      this.ai.enabled ? this.drafts.remainingToday(user.id) : Promise.resolve(0),
-    ]);
+    const [categories, buildings, activeAds, maxActiveAds, aiRemainingToday, pro] =
+      await Promise.all([
+        this.listCategories(),
+        this.publishableBuildings(user.id),
+        this.ads.countBy({ userId: user.id, status: In(COUNTS_AS_ACTIVE) }),
+        this.maxActiveAds(user.id),
+        this.ai.enabled ? this.drafts.remainingToday(user.id) : Promise.resolve(0),
+        this.plans.limits("pro"),
+      ]);
     const blocked = this.publishBlockReason(user);
     return {
       categories: categories.map(({ id, name, slug, icon }) => ({ id, name, slug, icon })),
@@ -76,6 +81,8 @@ export class AdsService {
         buildingVerified: building.buildingVerified,
         residentVerified: building.residentVerified,
       })),
+      plan: await this.plans.planOf(user.id),
+      proMaxRadiusKm: pro.maxRadiusKm,
       activeAds,
       maxActiveAds,
       aiEnabled: this.ai.enabled,
@@ -216,7 +223,11 @@ export class AdsService {
       await this.enqueueModeration(ad.id);
       return this.getMine(user.id, ad.id);
     }
-    const expired = ad.expiresAt !== null && ad.expiresAt <= new Date();
+    // RN-143: no Pro o anúncio não expira, então reativar nunca cai em "expirado".
+    const expired =
+      (await this.plans.planOf(user.id)) === "free" &&
+      ad.expiresAt !== null &&
+      ad.expiresAt <= new Date();
     await this.ads.update(ad.id, { status: expired ? "expirado" : "ativo" });
     return this.getMine(user.id, ad.id);
   }
@@ -262,6 +273,42 @@ export class AdsService {
     return this.getMine(user.id, ad.id);
   }
 
+  /**
+   * RN-144: o Pro destaca até N anúncios ativos (padrão 1). Destacar outro além do limite
+   * tira o destaque mais antigo, em vez de obrigar a pessoa a desfazer antes.
+   */
+  async feature(user: User, adId: string): Promise<MyAd> {
+    const ad = await this.findOwned(user.id, adId);
+    const plan = await this.plans.planOf(user.id);
+    if (plan !== "pro") throw new ForbiddenException("Destaque é um recurso do plano Pro.");
+    if (ad.status !== "ativo")
+      throw new BadRequestException("Só anúncios ativos podem ter destaque");
+    this.assertCanPublish(user);
+    if (ad.featuredAt) return this.getMine(user.id, ad.id);
+    const { featuredAds } = await this.plans.limits(plan);
+    if (featuredAds < 1) throw new ForbiddenException("Destaque indisponível no momento.");
+    await this.dataSource.transaction(async (manager) => {
+      // Serializa destaques do mesmo usuário (dois cliques ao mesmo tempo não furam o limite).
+      await manager.query(`SELECT id FROM users WHERE id = $1 FOR UPDATE`, [user.id]);
+      await manager.query(
+        `UPDATE ads SET featured_at = NULL, updated_at = now()
+         WHERE id IN (SELECT id FROM ads WHERE user_id = $1 AND featured_at IS NOT NULL
+                      ORDER BY featured_at DESC OFFSET $2)`,
+        [user.id, Math.max(featuredAds - 1, 0)],
+      );
+      await manager.query(`UPDATE ads SET featured_at = now(), updated_at = now() WHERE id = $1`, [
+        ad.id,
+      ]);
+    });
+    return this.getMine(user.id, ad.id);
+  }
+
+  async unfeature(user: User, adId: string): Promise<MyAd> {
+    const ad = await this.findOwned(user.id, adId);
+    if (ad.featuredAt) await this.ads.update(ad.id, { featuredAt: null });
+    return this.getMine(user.id, ad.id);
+  }
+
   async remove(user: User, adId: string): Promise<void> {
     const ad = await this.findOwned(user.id, adId);
     await this.ads.update(ad.id, { status: "excluido" });
@@ -273,7 +320,8 @@ export class AdsService {
       relations: { category: true, building: true, images: { upload: true } },
       order: { createdAt: "DESC" },
     });
-    return Promise.all(ads.map((ad) => this.toMyAd(ad)));
+    const plan = await this.plans.planOf(userId);
+    return Promise.all(ads.map((ad) => this.toMyAd(ad, plan)));
   }
 
   async getMine(userId: string, adId: string): Promise<MyAd> {
@@ -282,7 +330,7 @@ export class AdsService {
       relations: { category: true, building: true, images: { upload: true } },
     });
     if (!ad) throw new NotFoundException("Anúncio não encontrado");
-    return this.toMyAd(ad);
+    return this.toMyAd(ad, await this.plans.planOf(userId));
   }
 
   // —— Regras ——
@@ -318,7 +366,7 @@ export class AdsService {
       [userId],
     );
     const radii = await this.settings.get("ads.radiiKm");
-    const unverifiedMaxKm = await this.settings.get("ads.unverifiedMaxRadiusKm");
+    const { maxRadiusKm } = await this.plans.limits(await this.plans.planOf(userId));
     return rows.map((row) => {
       const buildingVerified = row.status === "verificado";
       const residentVerified = row.verified_at !== null;
@@ -328,17 +376,12 @@ export class AdsService {
         location: row.location,
         buildingVerified,
         residentVerified,
-        allowedRadiiKm: allowedRadii({
-          buildingVerified,
-          residentVerified,
-          radii,
-          unverifiedMaxKm,
-        }),
+        allowedRadiiKm: allowedRadii({ buildingVerified, maxRadiusKm, radii }),
       };
     });
   }
 
-  /** RN-050 (vínculo ativo) + RN-028/RN-059 (raio permitido). */
+  /** RN-050 (vínculo ativo) + RN-028/RN-059 (raio permitido pelo prédio e pelo plano). */
   private async publishContext(
     user: User,
     input: Pick<AdFields, "buildingId" | "radiusKm">,
@@ -353,7 +396,7 @@ export class AdsService {
     if (!building.allowedRadiiKm.includes(input.radiusKm)) {
       const reason = !building.buildingVerified
         ? "Enquanto o prédio está em verificação, o anúncio fica só para o seu prédio."
-        : `Sem o selo de morador verificado, o raio máximo é ${Math.max(...building.allowedRadiiKm)} km.`;
+        : `No seu plano o raio máximo é ${formatKm(Math.max(...building.allowedRadiiKm))}. Assine o Pro para alcançar mais longe.`;
       throw new ForbiddenException(reason);
     }
     return building;
@@ -442,7 +485,7 @@ export class AdsService {
     return new Date(reference.getTime() + hours * 3_600_000);
   }
 
-  private async toMyAd(ad: Ad): Promise<MyAd> {
+  private async toMyAd(ad: Ad, plan: Plan): Promise<MyAd> {
     const [stats] = await this.dataSource
       .query(
         `SELECT
@@ -477,14 +520,20 @@ export class AdsService {
       status: ad.status,
       statusReason: ad.statusReason,
       aiGenerated: ad.aiGenerated,
-      expiresAt: ad.expiresAt?.toISOString() ?? null,
+      expiresAt: plan === "pro" ? null : (ad.expiresAt?.toISOString() ?? null),
       bumpedAt: ad.bumpedAt?.toISOString() ?? null,
       canBumpAt: canBumpAt?.toISOString() ?? null,
+      featured: ad.featuredAt !== null,
+      canFeature: plan === "pro" && ad.status === "ativo",
       publishedAt: ad.publishedAt?.toISOString() ?? null,
       createdAt: ad.createdAt.toISOString(),
       stats: { favorites: stats?.favorites ?? 0, conversations: stats?.conversations ?? 0 },
     };
   }
+}
+
+function formatKm(km: number): string {
+  return km === 0 ? "só o seu prédio" : `${km.toLocaleString("pt-BR")} km`;
 }
 
 function formatWhen(date: Date): string {

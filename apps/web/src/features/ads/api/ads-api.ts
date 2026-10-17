@@ -72,6 +72,12 @@ export async function runAdAction(id: string, action: AdAction): Promise<MyAd> {
   return myAdSchema.parse(await api.post(`ads/${id}/${action}`).json());
 }
 
+/** Destaque do plano Pro (RN-144). */
+export async function setFeatured(id: string, featured: boolean): Promise<MyAd> {
+  const request = featured ? api.post(`ads/${id}/feature`) : api.delete(`ads/${id}/feature`);
+  return myAdSchema.parse(await request.json());
+}
+
 export async function deleteAd(id: string): Promise<void> {
   await api.delete(`ads/${id}`);
 }

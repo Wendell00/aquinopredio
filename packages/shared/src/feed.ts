@@ -8,7 +8,7 @@ import {
 } from "./ads";
 
 /** Faixas de distância do filtro (RN-072). 0 = só meu prédio. */
-export const FEED_DISTANCES_KM = [0, 1, 3, 5] as const;
+export const FEED_DISTANCES_KM = [0, 1, 3, 5, 10] as const;
 
 const optionalBool = z
   .enum(["true", "false", "1", "0"])
@@ -48,6 +48,8 @@ export const feedAdSchema = z.object({
   favorited: z.boolean(),
   /** Anúncio do próprio leitor (RN-074): aparece no feed, mas sem favoritar. */
   isMine: z.boolean(),
+  /** Destaque do plano Pro, fixado no topo (RN-144). */
+  featured: z.boolean(),
 });
 export type FeedAd = z.infer<typeof feedAdSchema>;
 

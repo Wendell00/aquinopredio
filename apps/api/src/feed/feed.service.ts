@@ -35,6 +35,7 @@ interface FeedRow {
   cover_height: number | null;
   favorited: boolean;
   is_mine: boolean;
+  featured: boolean;
 }
 
 /**
@@ -131,7 +132,8 @@ export class FeedService {
               cover.id AS cover_id, cover.key AS cover_key, cover.thumb_key AS cover_thumb,
               cover.width AS cover_width, cover.height AS cover_height,
               EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.ad_id = a.id) AS favorited,
-              a.user_id = $1 AS is_mine
+              a.user_id = $1 AS is_mine,
+              a.featured_at IS NOT NULL AS featured
        FROM ads a
        CROSS JOIN v
        JOIN buildings b ON b.id = a.building_id
@@ -144,6 +146,7 @@ export class FeedService {
          AND ${VISIBLE}
          ${filters.map((filter) => `AND ${filter}`).join("\n")}
        ORDER BY
+         (a.featured_at IS NOT NULL) DESC,
          (a.building_id = v.id) DESC,
          CASE WHEN ST_Distance(a.location, v.location) <= 1000 THEN 1
               WHEN ST_Distance(a.location, v.location) <= 3000 THEN 2 ELSE 3 END,
@@ -176,7 +179,8 @@ export class FeedService {
               c.id AS category_id, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
               cover.id AS cover_id, cover.key AS cover_key, cover.thumb_key AS cover_thumb,
               cover.width AS cover_width, cover.height AS cover_height,
-              true AS favorited, a.user_id = $1 AS is_mine, f.created_at AS favorited_at
+              true AS favorited, a.user_id = $1 AS is_mine,
+              a.featured_at IS NOT NULL AS featured, f.created_at AS favorited_at
        FROM favorites f
        JOIN ads a ON a.id = f.ad_id
        JOIN buildings v ON v.id = ANY($2::uuid[])
@@ -305,6 +309,7 @@ export class FeedService {
       publishedAt: new Date(row.published_at).toISOString(),
       favorited: row.favorited,
       isMine: row.is_mine,
+      featured: row.featured,
     };
   }
 }

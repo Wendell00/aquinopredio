@@ -85,6 +85,11 @@ describe("Feed, detalhe e interações (e2e)", () => {
     await db.query(`UPDATE building_memberships SET verified_at = now() WHERE building_id = $1`, [
       seller.buildingId,
     ]);
+    // Raio de 5 km é do plano Pro (RN-142).
+    await db.query(
+      `UPDATE users SET plan = 'pro' WHERE id = (SELECT created_by FROM buildings WHERE id = $1)`,
+      [seller.buildingId],
+    );
     neighborA = await joinBuilding(seller.buildingId, "Vizinha do A");
 
     await as(app, seller.cookie).patch("/api/me").send({ phone: "(11) 91234-5678" }).expect(200);

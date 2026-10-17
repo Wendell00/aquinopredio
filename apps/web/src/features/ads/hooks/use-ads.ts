@@ -2,7 +2,14 @@ import type { MyAd } from "@repo/shared";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api/client";
-import { type AdAction, deleteAd, getAdFormOptions, getMyAds, runAdAction } from "../api/ads-api";
+import {
+  type AdAction,
+  deleteAd,
+  getAdFormOptions,
+  getMyAds,
+  runAdAction,
+  setFeatured,
+} from "../api/ads-api";
 
 export const adKeys = {
   all: ["ads"] as const,
@@ -50,6 +57,22 @@ export function useAdAction() {
     onError: (error) =>
       toast.error(
         error instanceof ApiError ? error.message : "Não foi possível concluir. Tente de novo.",
+      ),
+  });
+}
+
+export function useSetFeatured() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, featured }: { id: string; featured: boolean }) => setFeatured(id, featured),
+    // Destacar um anúncio pode tirar o destaque de outro: recarrega a lista inteira.
+    onSuccess: (ad: MyAd) => {
+      void queryClient.invalidateQueries({ queryKey: adKeys.mine });
+      toast.success(ad.featured ? "Anúncio em destaque no topo do feed" : "Destaque removido");
+    },
+    onError: (error) =>
+      toast.error(
+        error instanceof ApiError ? error.message : "Não foi possível alterar o destaque.",
       ),
   });
 }
