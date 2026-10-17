@@ -160,8 +160,7 @@ export function BuildingSearch({ onCreate }: { onCreate: () => void }): React.JS
       <div className="mt-2 rounded-xl border border-dashed border-edge/60 p-5">
         <p className="font-bold">Não encontrou seu prédio?</p>
         <p className="mt-1 text-[0.95rem] text-ink-soft">
-          Cadastre em 2 minutos. Você vira o administrador do prédio e os vizinhos podem entrar
-          depois.
+          Cadastre em 2 minutos. Depois os vizinhos encontram o prédio e entram na hora.
         </p>
         <Button variant="secondary" className="mt-4" onClick={onCreate}>
           Cadastrar meu prédio

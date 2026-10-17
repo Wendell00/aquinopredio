@@ -30,7 +30,6 @@ Oferecer um aplicativo PWA (instalável no celular, sem loja de apps) onde:
 | **Raio de alcance** | Distância em km, a partir do prédio do anunciante, dentro da qual o anúncio fica visível para outros prédios. Raio 0 = só o próprio prédio. |
 | **Rascunho IA** | Sugestão de anúncio gerada pela IA a partir de texto/imagens do usuário, antes da publicação. |
 | **Validação de prédio** | Processo (automático por IA + manual quando necessário) que confirma que o prédio existe no endereço informado. |
-| **Administrador do prédio** | Morador com permissões de moderação no seu prédio (criador do prédio ou síndico verificado). |
 | **Admin da plataforma** | Equipe interna com acesso ao painel administrativo. |
 
 ## 1.5 Perfis de usuário
@@ -40,7 +39,6 @@ Oferecer um aplicativo PWA (instalável no celular, sem loja de apps) onde:
 | **Visitante (não logado)** | Ver a landing page. Não vê anúncios (privacidade dos moradores). |
 | **Morador** | Ver feed, favoritar, conversar, denunciar, criar anúncios, avaliar. |
 | **Morador verificado** | Tudo do morador + selo de verificação e maior limite de anúncios. |
-| **Administrador do prédio** | Tudo do morador + aprovar/remover moradores do prédio, ocultar anúncios do prédio, editar dados do prédio (sujeito a revalidação). |
 | **Admin da plataforma** | Revisar prédios pendentes, tratar denúncias, banir usuários, configurar parâmetros, ver métricas. |
 
 ## 1.6 Escopo do MVP

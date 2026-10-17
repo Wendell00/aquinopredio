@@ -19,7 +19,7 @@ flowchart TD
     M -->|Sim| F
     M -->|Não| N[Validação por IA]
     L -->|Nenhum| N
-    N -->|score ≥ 0,80| O[Prédio verificado<br/>usuário = admin do prédio]
+    N -->|score ≥ 0,80| O[Prédio verificado]
     N -->|0,50–0,79| P[Pendente de revisão<br/>uso liberado com raio 0]
     N -->|< 0,50| Q[Rejeitado + motivo<br/>corrigir e reenviar 1x]
     Q --> J
@@ -75,10 +75,7 @@ sequenceDiagram
 
 ## 3.5 Administrador do prédio
 
-1. Aba "Meu prédio": lista de moradores (com unidade), solicitações de vínculo pendentes, anúncios do prédio.
-2. Aprovar/recusar vínculos, conceder selo de verificado, remover morador, ocultar anúncio do prédio.
-3. Configurar política de entrada (`automatica` / `aprovacao_admin`).
-4. Editar dados do prédio (dispara revalidação — RN-032).
+*(Removido em 17/10/2026.)* Prédios não têm administrador: o vizinho entra na hora (RN-037) e a moderação é da IA e da plataforma (3.6).
 
 ## 3.6 Admin da plataforma (painel)
 

@@ -38,7 +38,7 @@ apps/
     providers/           # providers client-side (Query, nuqs)
   api/src/
     <modulo>/            # um diretório por domínio: controller, service, entity, *.spec.ts
-                         # auth, users, buildings, building-admin, geo, ai, uploads, storage, ads,
+                         # auth, users, buildings, geo, ai, uploads, storage, ads,
                          # feed, chat, notifications, admin, settings, audit
     common/              # pipes, guards, middleware e decorators reutilizáveis
     config/              # env validado (zod) e config do banco

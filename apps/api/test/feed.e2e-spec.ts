@@ -189,7 +189,7 @@ describe("Feed, detalhe e interações (e2e)", () => {
 
   it("bloqueio oculta anúncios nos dois sentidos (RN-075, RN-082)", async () => {
     const [{ user_id: sellerId }] = await db.query(
-      `SELECT user_id FROM building_memberships WHERE building_id = $1 AND role = 'admin'`,
+      `SELECT created_by AS user_id FROM buildings WHERE id = $1`,
       [seller.buildingId],
     );
     await as(app, viewerB.cookie).post(`/api/users/${sellerId}/block`).expect(204);

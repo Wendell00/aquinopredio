@@ -29,12 +29,6 @@ export function BuildingHeader({ current }: { current: MyBuilding }): React.JSX.
           nele.
         </Alert>
       )}
-      {current.status === "pendente" && (
-        <Alert tone="info">
-          Seu pedido para entrar no prédio está com o administrador. Se ninguém responder em 7 dias,
-          ele é aprovado automaticamente.
-        </Alert>
-      )}
     </div>
   );
 }

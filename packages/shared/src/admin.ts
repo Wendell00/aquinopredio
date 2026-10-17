@@ -1,70 +1,8 @@
 import { z } from "zod";
 import { adStatusSchema } from "./ads";
-import {
-  buildingStatusSchema,
-  buildingTypeSchema,
-  joinPolicySchema,
-  membershipRoleSchema,
-  membershipStatusSchema,
-} from "./buildings";
+import { buildingStatusSchema, buildingTypeSchema } from "./buildings";
 import { reportReasonSchema } from "./feed";
 import { userRoleSchema, userStatusSchema } from "./users";
-
-// —— Administração do prédio (RN-037 a RN-041, RN-094) ——
-
-/** Morador visto pelo administrador do prédio (inclui a unidade, RN-007). */
-export const buildingMemberSchema = z.object({
-  membershipId: z.uuid(),
-  userId: z.uuid(),
-  name: z.string(),
-  image: z.string().nullable(),
-  unit: z.string(),
-  role: membershipRoleSchema,
-  status: membershipStatusSchema,
-  verified: z.boolean(),
-  requestedAt: z.iso.datetime(),
-  isMe: z.boolean(),
-});
-export type BuildingMember = z.infer<typeof buildingMemberSchema>;
-
-export const buildingAdminViewSchema = z.object({
-  building: z.object({
-    id: z.uuid(),
-    name: z.string(),
-    type: buildingTypeSchema,
-    status: buildingStatusSchema,
-    joinPolicy: joinPolicySchema,
-    district: z.string(),
-    city: z.string(),
-  }),
-  members: z.array(buildingMemberSchema),
-  admins: z.number().int(),
-  maxAdmins: z.number().int(),
-  autoApproveDays: z.number().int(),
-});
-export type BuildingAdminView = z.infer<typeof buildingAdminViewSchema>;
-
-export const updateBuildingSettingsSchema = z.object({ joinPolicy: joinPolicySchema });
-
-export const memberActionSchema = z.enum([
-  "aprovar",
-  "recusar",
-  "verificar",
-  "remover_selo",
-  "remover",
-  "promover",
-]);
-export type MemberAction = z.infer<typeof memberActionSchema>;
-
-export const buildingAdSchema = z.object({
-  id: z.uuid(),
-  title: z.string(),
-  status: adStatusSchema,
-  sellerName: z.string(),
-  createdAt: z.iso.datetime(),
-  reportCount: z.number().int(),
-});
-export type BuildingAd = z.infer<typeof buildingAdSchema>;
 
 // —— Painel da plataforma ——
 

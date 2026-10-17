@@ -153,19 +153,16 @@ export class BuildingsService {
           location: { type: "Point", coordinates: [input.lng, input.lat] },
           unitsEstimate: input.unitsEstimate ?? null,
           status: "pendente_validacao",
-          joinPolicy: "automatica",
           createdBy: user.id,
           resubmissions: 0,
           lastActivityAt: new Date(),
         }),
       );
-      // RN-031: quem cria vira administrador do prédio.
       await manager.getRepository(BuildingMembership).save(
         manager.getRepository(BuildingMembership).create({
           userId: user.id,
           buildingId: saved.id,
           unit: input.unit,
-          role: "admin",
           status: "ativo",
           decidedAt: new Date(),
         }),
@@ -178,7 +175,7 @@ export class BuildingsService {
     return { result: "created", building: await this.myBuilding(user.id, building.id) };
   }
 
-  /** Pedido de vínculo com prédio existente (RN-022, RN-037). */
+  /** Vínculo com prédio existente: entra na hora, sem aprovação (RN-022, RN-037). */
   async join(user: User, buildingId: string, unit: string): Promise<MyBuilding> {
     const building = await this.buildings.findOneBy({ id: buildingId });
     if (!building || !SEARCHABLE.includes(building.status))
@@ -189,21 +186,17 @@ export class BuildingsService {
       throw new ConflictException("Você já tem vínculo com este prédio");
     }
     if (existing?.status === "removido") {
-      throw new ForbiddenException(
-        "Você foi removido deste prédio. Fale com o administrador do prédio.",
-      );
+      throw new ForbiddenException("Você não pode voltar a este prédio. Fale com o suporte.");
     }
     await this.assertCanAddBuilding(user.id);
 
-    const status = building.joinPolicy === "automatica" ? "ativo" : "pendente";
     await this.memberships.save({
       ...(existing ?? {}),
       userId: user.id,
       buildingId,
       unit,
-      role: "morador",
-      status,
-      decidedAt: status === "ativo" ? new Date() : null,
+      status: "ativo",
+      decidedAt: new Date(),
     });
     await this.buildings.update(buildingId, { lastActivityAt: new Date() });
     await this.afterJoin(user, buildingId);
@@ -352,7 +345,6 @@ function toMyBuilding(
   return {
     membershipId: membership.id,
     unit: membership.unit,
-    role: membership.role,
     status: membership.status,
     isPrimary: primaryBuildingId === b.id,
     verifiedResident: membership.verifiedAt !== null,
@@ -369,7 +361,6 @@ function toMyBuilding(
       lng: b.location.coordinates[0],
       lat: b.location.coordinates[1],
       status: b.status,
-      joinPolicy: b.joinPolicy,
       rejectionReason: b.rejectionReason,
       suggestedName: b.suggestedName,
       canResubmit:

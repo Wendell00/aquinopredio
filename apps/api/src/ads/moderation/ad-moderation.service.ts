@@ -45,7 +45,7 @@ export class AdModerationService {
       relations: { category: true, images: { upload: true } },
     });
     if (ad?.status !== "em_moderacao") return null;
-    // Ocultado por denúncias/admin do prédio: só o admin da plataforma decide (RN-093, RN-094).
+    // Ocultado por denúncias: só o admin da plataforma decide (RN-093).
     if (ad.manualReview) return "em_moderacao";
 
     const text = [ad.title, ad.description, ad.tags.join(" "), ad.availability ?? ""].join("\n");

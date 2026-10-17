@@ -444,7 +444,7 @@ export function CreateBuildingWizard({
           {!resubmit && (
             <Field
               label="Sua unidade"
-              hint="Apto, bloco ou casa. Só o administrador do prédio vê."
+              hint="Apto, bloco ou casa. Nunca aparece para os vizinhos."
               error={errors.unit?.message}
             >
               {({ id, describedBy, invalid }) => (

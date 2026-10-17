@@ -2,9 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { DataSource } from "typeorm";
 import { AdModerationService } from "../src/ads/moderation/ad-moderation.service";
-import { MaintenanceScheduler } from "../src/building-admin/maintenance.scheduler";
 import { GeoService } from "../src/geo/geo.service";
-import { NotificationsService } from "../src/notifications/notifications.service";
 import { SettingsService } from "../src/settings/settings.service";
 import { StorageService } from "../src/storage/storage.service";
 import {
@@ -77,138 +75,22 @@ describe("Administração e conta (e2e)", () => {
     await app.close();
   });
 
-  describe("administrador do prédio", () => {
-    it("aprova/recusa pedidos, concede selo, promove e remove moradores (RN-037 a RN-041)", async () => {
-      const admin = await resident(app, {}, "Síndica");
+  describe("prédio sem administrador", () => {
+    it("vizinho entra no prédio na hora e não existe painel de administração do prédio (RN-037)", async () => {
+      const creator = await resident(app, {}, "Quem cadastrou");
       await db.query(`UPDATE buildings SET status = 'verificado' WHERE id = $1`, [
-        admin.buildingId,
+        creator.buildingId,
       ]);
-      const api = as(app, admin.cookie);
-      await api
-        .patch(`/api/buildings/${admin.buildingId}/admin`)
-        .send({ joinPolicy: "aprovacao_admin" })
-        .expect(204);
-
-      const alice = await onboardedProfile(app, "Alice");
-      const bob = await onboardedProfile(app, "Bob");
-      for (const person of [alice, bob]) {
-        const joined = await as(app, person.cookie)
-          .post(`/api/buildings/${admin.buildingId}/join`)
-          .send({ unit: "7B" })
-          .expect(200);
-        expect(joined.body.status).toBe("pendente");
-      }
-      let view = (await api.get(`/api/buildings/${admin.buildingId}/admin`).expect(200)).body;
-      const pending = view.members.filter((m: { status: string }) => m.status === "pendente");
-      expect(pending).toHaveLength(2);
-      expect(pending[0].unit).toBe("7B");
-      const memberOf = (name: string) =>
-        view.members.find((m: { name: string }) => m.name === name).membershipId;
-
-      await api
-        .post(`/api/buildings/${admin.buildingId}/admin/members/${memberOf("Alice")}`)
-        .send({ action: "aprovar" })
-        .expect(204);
-      await api
-        .post(`/api/buildings/${admin.buildingId}/admin/members/${memberOf("Bob")}`)
-        .send({ action: "recusar" })
-        .expect(204);
-      expect((await as(app, alice.cookie).get("/api/notifications")).body[0].type).toBe(
-        "vinculo_atualizado",
-      );
-
-      // Promover exige selo de verificado.
-      await api
-        .post(`/api/buildings/${admin.buildingId}/admin/members/${memberOf("Alice")}`)
-        .send({ action: "promover" })
-        .expect(400);
-      await api
-        .post(`/api/buildings/${admin.buildingId}/admin/members/${memberOf("Alice")}`)
-        .send({ action: "verificar" })
-        .expect(204);
-      await api
-        .post(`/api/buildings/${admin.buildingId}/admin/members/${memberOf("Alice")}`)
-        .send({ action: "promover" })
-        .expect(204);
-      view = (await api.get(`/api/buildings/${admin.buildingId}/admin`).expect(200)).body;
-      expect(view.admins).toBe(2);
-
-      // Morador comum não acessa a administração.
-      const carol = await onboardedProfile(app, "Carol");
-      await api
-        .patch(`/api/buildings/${admin.buildingId}/admin`)
-        .send({ joinPolicy: "automatica" })
-        .expect(204);
-      await as(app, carol.cookie)
-        .post(`/api/buildings/${admin.buildingId}/join`)
-        .send({ unit: "1" })
+      const neighbor = await onboardedProfile(app, "Vizinha nova");
+      const joined = await as(app, neighbor.cookie)
+        .post(`/api/buildings/${creator.buildingId}/join`)
+        .send({ unit: "7B" })
         .expect(200);
-      await as(app, carol.cookie).get(`/api/buildings/${admin.buildingId}/admin`).expect(403);
+      expect(joined.body.status).toBe("ativo");
+      expect(joined.body).not.toHaveProperty("role");
+      expect((await as(app, neighbor.cookie).get("/api/me")).body.onboardingStep).toBe("concluido");
 
-      // RN-040: removido → anúncios pausados e volta ao onboarding se não tiver outro prédio.
-      const carolAd = await publish(
-        { cookie: carol.cookie, buildingId: admin.buildingId },
-        "Conserto de bicicleta",
-      );
-      view = (await api.get(`/api/buildings/${admin.buildingId}/admin`).expect(200)).body;
-      await api
-        .post(`/api/buildings/${admin.buildingId}/admin/members/${memberOf("Carol")}`)
-        .send({ action: "remover" })
-        .expect(204);
-      const [{ status: carolAdStatus }] = await db.query(`SELECT status FROM ads WHERE id = $1`, [
-        carolAd,
-      ]);
-      expect(carolAdStatus).toBe("pausado");
-      expect((await as(app, carol.cookie).get("/api/me")).body.onboardingStep).toBe("predio");
-    });
-
-    it("oculta anúncio do próprio prédio, que vai para revisão (RN-094)", async () => {
-      const admin = await resident(app, {}, "Admin do prédio");
-      const neighbor = await onboardedProfile(app, "Vizinho");
-      await db.query(`UPDATE buildings SET status = 'verificado' WHERE id = $1`, [
-        admin.buildingId,
-      ]);
-      await as(app, neighbor.cookie)
-        .post(`/api/buildings/${admin.buildingId}/join`)
-        .send({ unit: "2" })
-        .expect(200);
-      const adId = await publish(
-        { cookie: neighbor.cookie, buildingId: admin.buildingId },
-        "Aulas de inglês",
-      );
-      await as(app, admin.cookie)
-        .post(`/api/buildings/${admin.buildingId}/admin/ads/${adId}/hide`)
-        .expect(204);
-      const ad = (await as(app, neighbor.cookie).get(`/api/ads/mine/${adId}`)).body;
-      expect(ad).toMatchObject({ status: "em_moderacao" });
-      expect(ad.statusReason).toMatch(/administrador do prédio/);
-      const [log] = await db.query(`SELECT action FROM audit_logs WHERE target_id = $1`, [adId]);
-      expect(log.action).toBe("anuncio.ocultar_predio");
-    });
-
-    it("aprova vínculo pendente automaticamente após 7 dias (RN-037)", async () => {
-      const admin = await resident(app, {}, "Admin Ausente");
-      await db.query(
-        `UPDATE buildings SET status = 'verificado', join_policy = 'aprovacao_admin' WHERE id = $1`,
-        [admin.buildingId],
-      );
-      const late = await onboardedProfile(app, "Esperando");
-      await as(app, late.cookie)
-        .post(`/api/buildings/${admin.buildingId}/join`)
-        .send({ unit: "9" })
-        .expect(200);
-      await db.query(
-        `UPDATE building_memberships SET created_at = now() - interval '8 days' WHERE status = 'pendente' AND building_id = $1`,
-        [admin.buildingId],
-      );
-      const scheduler = new MaintenanceScheduler(
-        db,
-        app.get(SettingsService),
-        app.get(NotificationsService),
-      );
-      expect(await scheduler.autoApproveMemberships()).toBeGreaterThanOrEqual(1);
-      const [mine] = (await as(app, late.cookie).get("/api/me/buildings")).body;
-      expect(mine.status).toBe("ativo");
+      await as(app, creator.cookie).get(`/api/buildings/${creator.buildingId}/admin`).expect(404);
     });
   });
 

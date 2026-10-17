@@ -121,7 +121,7 @@ export class Ad {
   @Column("boolean")
   needsModeration: boolean;
 
-  /** Ocultado por denúncias ou pelo admin do prédio: só o admin da plataforma libera. */
+  /** Ocultado por denúncias: só o admin da plataforma libera (RN-093). */
   @Column("boolean")
   manualReview: boolean;
 

@@ -2,7 +2,7 @@
 
 import type { MyBuilding } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Settings2, Star } from "lucide-react";
+import { BadgeCheck, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -63,8 +63,7 @@ export function MyBuildings({
                 </p>
                 <p className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-muted">
                   <span>
-                    {item.role === "admin" ? "Administrador" : MEMBERSHIP_LABEL[item.status]},
-                    unidade {item.unit}
+                    {MEMBERSHIP_LABEL[item.status]}, unidade {item.unit}
                   </span>
                   {item.verifiedResident && (
                     <span className="inline-flex items-center gap-1 text-leaf">
@@ -84,14 +83,6 @@ export function MyBuildings({
                 <Button variant="secondary" size="sm" onClick={() => makePrimary(item.building.id)}>
                   Tornar principal
                 </Button>
-              )}
-              {item.role === "admin" && item.status === "ativo" && (
-                <Link
-                  href={`/meu-predio/${item.building.id}`}
-                  className={buttonClasses("secondary", "sm")}
-                >
-                  <Settings2 className="size-4" aria-hidden /> Administrar prédio
-                </Link>
               )}
             </div>
           </li>

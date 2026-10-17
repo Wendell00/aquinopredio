@@ -12,14 +12,8 @@ export const buildingStatusSchema = z.enum([
 ]);
 export type BuildingStatus = z.infer<typeof buildingStatusSchema>;
 
-export const joinPolicySchema = z.enum(["automatica", "aprovacao_admin"]);
-export type JoinPolicy = z.infer<typeof joinPolicySchema>;
-
 export const membershipStatusSchema = z.enum(["pendente", "ativo", "recusado", "removido"]);
 export type MembershipStatus = z.infer<typeof membershipStatusSchema>;
-
-export const membershipRoleSchema = z.enum(["morador", "admin"]);
-export type MembershipRole = z.infer<typeof membershipRoleSchema>;
 
 export const BRAZIL_STATES = [
   "AC",
@@ -169,7 +163,6 @@ export const setPrimaryBuildingInputSchema = z.object({ buildingId: z.uuid() });
 export const myBuildingSchema = z.object({
   membershipId: z.uuid(),
   unit: z.string(),
-  role: membershipRoleSchema,
   status: membershipStatusSchema,
   isPrimary: z.boolean(),
   verifiedResident: z.boolean(),
@@ -186,7 +179,6 @@ export const myBuildingSchema = z.object({
     lat: z.number(),
     lng: z.number(),
     status: buildingStatusSchema,
-    joinPolicy: joinPolicySchema,
     rejectionReason: z.string().nullable(),
     suggestedName: z.string().nullable(),
     canResubmit: z.boolean(),
@@ -200,8 +192,3 @@ export const createBuildingResponseSchema = z.discriminatedUnion("result", [
   z.object({ result: z.literal("duplicates"), candidates: z.array(buildingSummarySchema) }),
 ]);
 export type CreateBuildingResponse = z.infer<typeof createBuildingResponseSchema>;
-
-export const JOIN_POLICY_LABELS: Record<JoinPolicy, string> = {
-  automatica: "Entrada automática",
-  aprovacao_admin: "Com aprovação do administrador",
-};

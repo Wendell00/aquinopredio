@@ -12,7 +12,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-004** — O usuário deve ter **18 anos ou mais** (declaração no cadastro + aceite dos Termos de Uso e Política de Privacidade).
 - **RN-005** — **O cadastro só é concluído após o vínculo com um prédio** (localizar existente ou criar novo). Enquanto não houver vínculo, o usuário fica no estado `onboarding_pendente` e só acessa o fluxo de onboarding.
 - **RN-006** — Nome de exibição é obrigatório; foto de perfil é opcional.
-- **RN-007** — O número do apartamento/unidade é informado no vínculo, mas **nunca é exibido publicamente**; é visível apenas para o administrador do prédio e admins da plataforma.
+- **RN-007** — O número do apartamento/unidade é informado no vínculo, mas **nunca é exibido publicamente**; é visível apenas para os admins da plataforma (ex.: ao tratar denúncias).
 - **RN-008** — O usuário pode excluir a conta a qualquer momento. A exclusão remove anúncios ativos, anonimiza mensagens enviadas ("Usuário removido") e apaga dados pessoais em até 30 dias (LGPD), mantendo apenas registros exigidos por lei/segurança (logs de moderação).
 - **RN-009** — Contas banidas não podem criar nova conta com o mesmo e-mail, telefone ou dispositivo identificado.
 - **RN-010** — Todo usuário escolhe um **nome de usuário** (`@fulano`) no passo de perfil do cadastro. Ele é **único** no app, tem 3–20 caracteres (letras minúsculas sem acento, números, `_` e `.`, começando por letra) e não pode usar nomes reservados (ex.: `admin`, `suporte`). Pode ser trocado no perfil, se o novo estiver livre. Ao excluir a conta, o nome é liberado.
@@ -36,7 +36,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-028** — Enquanto o prédio estiver `pendente_revisao`, o criador e quem se vincular **podem usar o app**, mas os anúncios ficam com raio máximo de **0 km** (somente o próprio prédio) até a verificação. Um aviso é exibido no prédio.
 - **RN-029** — Se o prédio for `rejeitado`, o usuário pode **corrigir os dados e reenviar uma única vez** `[configurável]`; nova rejeição exige contato com o suporte. O usuário volta para o estado `onboarding_pendente`.
 - **RN-030** — Um usuário pode criar no máximo **2 prédios a cada 30 dias** `[configurável]` (antifraude).
-- **RN-031** — O criador do prédio torna-se automaticamente **administrador do prédio**.
+- **RN-031** — *(removida em 17/10/2026: não existe mais administrador do prédio.)* O criador do prédio é um morador como os demais; a moderação é feita pela IA e pelos admins da plataforma.
 - **RN-032** — Alterações de nome ou endereço de um prédio verificado disparam **nova validação por IA**; até a conclusão, os dados antigos continuam valendo.
 - **RN-033** — Prédios sem nenhum morador ativo por **180 dias** `[configurável]` são arquivados (somem da busca, mas podem ser reativados).
 - **RN-034** — O endereço completo do prédio nunca é exibido para moradores de **outros** prédios: eles veem apenas nome do prédio, bairro e distância aproximada (ex.: "a 1,2 km").
@@ -44,13 +44,11 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 ### Vínculo do morador com o prédio
 - **RN-035** — Cada usuário possui **um prédio principal** e pode ter até **2 prédios adicionais** `[configurável]` (ex.: quem tem imóvel em outro condomínio). Anúncios são sempre publicados a partir de um prédio escolhido pelo usuário dentre os seus.
 - **RN-036** — Status do vínculo: `pendente`, `ativo`, `recusado`, `removido`.
-- **RN-037** — Política de aprovação do vínculo (definida por prédio, padrão `automatica`):
-  - `automatica`: vínculo entra `ativo` imediatamente.
-  - `aprovacao_admin`: administrador do prédio precisa aprovar; após **7 dias** sem resposta, aprova automaticamente.
-- **RN-038** — **Selo de morador verificado** é concedido quando ocorrer uma das opções: (a) aprovação do administrador do prédio; (b) confirmação por **2 moradores verificados** do mesmo prédio; (c) envio de comprovante de residência analisado (IA + revisão). O selo é exibido no perfil e nos anúncios.
+- **RN-037** — O vínculo entra `ativo` imediatamente; não há aprovação por moradores. (`pendente` e `recusado` ficam reservados para uma verificação futura.)
+- **RN-038** — **Selo de morador verificado** é concedido quando ocorrer uma das opções: (a) *(removida: não há administrador do prédio)*; (b) confirmação por **2 moradores verificados** do mesmo prédio; (c) envio de comprovante de residência analisado (IA + revisão). O selo é exibido no perfil e nos anúncios.
 - **RN-039** — O usuário pode trocar o prédio principal a qualquer momento; anúncios ativos vinculados ao prédio antigo continuam ativos até expirarem, a menos que o vínculo seja removido (nesse caso, são pausados).
-- **RN-040** — Administrador do prédio pode remover um morador do prédio; o morador é notificado e seus anúncios naquele prédio são pausados.
-- **RN-041** — Um prédio pode ter no máximo **3 administradores**. O administrador pode nomear outro morador verificado como administrador e pode renunciar ao cargo. Se o prédio ficar sem administrador, o morador verificado mais antigo é sugerido.
+- **RN-040** — *(removida em 17/10/2026: não existe mais administrador do prédio.)*
+- **RN-041** — *(removida em 17/10/2026: não existe mais administrador do prédio.)*
 
 ## 2.3 Anúncios (RN-050 a RN-069)
 
@@ -116,7 +114,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-091** — Conteúdo proibido: itens ilegais (drogas, armas, medicamentos controlados), conteúdo adulto/sexual, animais silvestres, serviços financeiros duvidosos/pirâmides, jogos de azar, discurso de ódio, dados pessoais de terceiros, anúncios enganosos e falsificações.
 - **RN-092** — Qualquer usuário pode **denunciar** um anúncio, usuário ou mensagem, escolhendo um motivo (golpe, conteúdo impróprio, spam, item proibido, outro).
 - **RN-093** — Anúncio com **3 denúncias de usuários distintos** `[configurável]` é ocultado automaticamente e enviado para revisão manual.
-- **RN-094** — O administrador do prédio pode **ocultar** anúncios originados no seu prédio (o anúncio vai para revisão da plataforma). Não pode ocultar anúncios de outros prédios — apenas denunciar.
+- **RN-094** — *(removida em 17/10/2026: não existe mais administrador do prédio.)* Moradores apenas denunciam (RN-093).
 - **RN-095** — Sanções progressivas: 1ª infração → aviso; 2ª → suspensão de publicação por 7 dias; 3ª → banimento. Infrações graves (golpe, conteúdo ilegal) → banimento imediato.
 - **RN-096** — O usuário afetado é notificado do motivo e pode **contestar** uma vez por decisão.
 
@@ -124,7 +122,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 
 - **RN-110** — Gerações de anúncio por IA: **10 por usuário por dia** `[configurável]`.
 - **RN-111** — Imagens enviadas para a IA são redimensionadas (máx. 1568 px no maior lado) antes do envio, para reduzir custo.
-- **RN-112** — Validações de prédio por IA: **1 por criação + 1 reenvio** (RN-029); revalidações por edição (RN-032) contam no limite do administrador.
+- **RN-112** — Validações de prédio por IA: **1 por criação + 1 reenvio** (RN-029); revalidações por edição (RN-032) contam no limite de quem cadastrou o prédio.
 - **RN-113** — Se o serviço de IA estiver indisponível: a criação manual de anúncio continua funcionando; prédios novos ficam `pendente_revisao` (fila manual); anúncios ficam `em_moderacao` até a moderação ser processada (fila com reprocessamento).
 
 ## 2.8 Notificações (RN-120 a RN-129)

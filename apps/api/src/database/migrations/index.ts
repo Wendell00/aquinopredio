@@ -9,6 +9,7 @@ import { AiCalls1760900000000 } from "./1760900000000-ai-calls";
 import { AdReviewFlags1761000000000 } from "./1761000000000-ad-review-flags";
 import { AdAvailabilityOptions1761100000000 } from "./1761100000000-ad-availability-options";
 import { Usernames1761200000000 } from "./1761200000000-usernames";
+import { RemoveBuildingAdmin1761300000000 } from "./1761300000000-remove-building-admin";
 
 type MigrationClass = new () => MigrationInterface;
 
@@ -24,4 +25,5 @@ export const migrations: MigrationClass[] = [
   AdReviewFlags1761000000000,
   AdAvailabilityOptions1761100000000,
   Usernames1761200000000,
+  RemoveBuildingAdmin1761300000000,
 ];

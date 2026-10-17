@@ -6,6 +6,7 @@ import { GeoModule } from "../geo/geo.module";
 import { Building, BuildingMembership, BuildingVerification } from "./building.entity";
 import { BuildingsController, MyBuildingsController } from "./buildings.controller";
 import { BuildingsService } from "./buildings.service";
+import { MaintenanceWorkersModule } from "./maintenance/maintenance-workers.module";
 import { BuildingVerificationService } from "./verification/building-verification.service";
 import { BuildingWorkersModule } from "./verification/building-workers.module";
 import { BUILDING_VERIFICATION_QUEUE } from "./verification/verification.queue";
@@ -17,6 +18,10 @@ import { BUILDING_VERIFICATION_QUEUE } from "./verification/verification.queue";
     GeoModule,
     // O worker só sobe onde WORKERS_ENABLED=true (desligado nos testes e em réplicas só de HTTP).
     ConditionalModule.registerWhen(BuildingWorkersModule, (env) => env.WORKERS_ENABLED !== "false"),
+    ConditionalModule.registerWhen(
+      MaintenanceWorkersModule,
+      (env) => env.WORKERS_ENABLED !== "false",
+    ),
   ],
   controllers: [BuildingsController, MyBuildingsController],
   providers: [BuildingsService, BuildingVerificationService],

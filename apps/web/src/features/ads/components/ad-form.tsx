@@ -378,7 +378,7 @@ export function AdForm({
           {!building?.buildingVerified
             ? "Enquanto o prédio está em verificação, o anúncio aparece só para quem mora nele."
             : !building.residentVerified
-              ? "Com o selo de morador verificado você pode alcançar até 5 km. Peça ao administrador do prédio."
+              ? "Com o selo de morador verificado você pode alcançar até 5 km."
               : "Vizinhos dos prédios dentro do raio escolhido verão o seu anúncio."}
         </p>
       </fieldset>

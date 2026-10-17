@@ -11,7 +11,6 @@ import { AiModule } from "./ai/ai.module";
 import { AuditModule } from "./audit/audit.service";
 import { AuthGuard } from "./auth/auth.guard";
 import { AuthModule } from "./auth/auth.module";
-import { BuildingAdminModule } from "./building-admin/building-admin.module";
 import { BuildingsModule } from "./buildings/buildings.module";
 import { ChatModule } from "./chat/chat.module";
 import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
@@ -68,7 +67,6 @@ import { UsersModule } from "./users/users.module";
     AdsModule,
     FeedModule,
     ChatModule,
-    BuildingAdminModule,
     AdminModule,
   ],
   // Ordem importa: primeiro a sessão (AuthGuard), depois o rate limit por usuário.

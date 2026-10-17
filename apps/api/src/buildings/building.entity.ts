@@ -1,10 +1,4 @@
-import type {
-  BuildingStatus,
-  BuildingType,
-  JoinPolicy,
-  MembershipRole,
-  MembershipStatus,
-} from "@repo/shared";
+import type { BuildingStatus, BuildingType, MembershipStatus } from "@repo/shared";
 import {
   Column,
   CreateDateColumn,
@@ -66,9 +60,6 @@ export class Building {
   })
   status: BuildingStatus;
 
-  @Column({ type: "enum", enum: ["automatica", "aprovacao_admin"], enumName: "join_policy" })
-  joinPolicy: JoinPolicy;
-
   @Column("uuid", { nullable: true })
   createdBy: string | null;
 
@@ -108,9 +99,6 @@ export class BuildingMembership {
 
   @Column("text")
   unit: string;
-
-  @Column({ type: "enum", enum: ["morador", "admin"], enumName: "membership_role" })
-  role: MembershipRole;
 
   @Column({
     type: "enum",

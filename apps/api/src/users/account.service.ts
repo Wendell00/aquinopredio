@@ -25,7 +25,7 @@ export class AccountService {
       exportado_em: new Date().toISOString(),
       perfil: profile,
       predios: await q(
-        `SELECT b.name AS predio, b.street, b.number, b.city, m.unit AS unidade, m.role AS papel, m.status, m.created_at
+        `SELECT b.name AS predio, b.street, b.number, b.city, m.unit AS unidade, m.status, m.created_at
          FROM building_memberships m JOIN buildings b ON b.id = m.building_id WHERE m.user_id = $1`,
       ),
       anuncios: await q(

@@ -53,7 +53,6 @@ erDiagram
 | units_estimate | int, nulo | |
 | facade_photo_url | text, nulo | |
 | status | enum | `pendente_validacao`, `verificado`, `pendente_revisao`, `rejeitado`, `arquivado` |
-| join_policy | enum | `automatica`, `aprovacao_admin` |
 | created_by | FK users | |
 | resubmissions | int | RN-029 |
 | last_activity_at | timestamptz | RN-033 |
@@ -63,7 +62,6 @@ erDiagram
 |-------|------|-----------|
 | user_id / building_id | FK | único por par |
 | unit | text | privado (RN-007) |
-| role | enum | `morador`, `admin` |
 | status | enum | `pendente`, `ativo`, `recusado`, `removido` |
 | verified_at | timestamptz, nulo | selo (RN-038) |
 | verified_method | enum, nulo | `admin`, `vizinhos`, `comprovante` |

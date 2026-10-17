@@ -30,7 +30,6 @@ describe("Prédios e onboarding (e2e)", () => {
     const created = await api.post("/api/buildings").send(buildingInput()).expect(201);
     expect(created.body.result).toBe("created");
     expect(created.body.building).toMatchObject({
-      role: "admin",
       status: "ativo",
       isPrimary: true,
       unit: "Apto 42",
@@ -96,30 +95,9 @@ describe("Prédios e onboarding (e2e)", () => {
       .post(`/api/buildings/${buildingId}/join`)
       .send({ unit: "Casa 7" })
       .expect(200);
-    expect(joined.body).toMatchObject({ status: "ativo", role: "morador", isPrimary: true });
+    expect(joined.body).toMatchObject({ status: "ativo", isPrimary: true });
     await api.post(`/api/buildings/${buildingId}/join`).send({ unit: "Casa 7" }).expect(409);
     expect((await api.get("/api/me")).body.onboardingStep).toBe("concluido");
-  });
-
-  it("vínculo fica pendente quando o prédio exige aprovação", async () => {
-    const owner = await onboardedProfile(app);
-    const created = await as(app, owner.cookie)
-      .post("/api/buildings")
-      .send(buildingInput())
-      .expect(201);
-    const buildingId = created.body.building.building.id;
-    await app
-      .get(DataSource)
-      .query(
-        `UPDATE buildings SET status = 'verificado', join_policy = 'aprovacao_admin' WHERE id = $1`,
-        [buildingId],
-      );
-
-    const resident = await onboardedProfile(app);
-    const joined = await as(app, resident.cookie)
-      .post(`/api/buildings/${buildingId}/join`)
-      .send({ unit: "12" });
-    expect(joined.body.status).toBe("pendente");
   });
 
   it("limita prédios criados em 30 dias (RN-030)", async () => {

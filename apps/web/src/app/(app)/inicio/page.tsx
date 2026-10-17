@@ -28,7 +28,7 @@ export default async function HomePage({
     <main className="mx-auto flex max-w-[60rem] flex-col gap-6 px-5 py-6">
       {params.cadastro === "predio" && (
         <Alert tone="success">
-          Prédio cadastrado! Você é o administrador e já pode convidar os vizinhos.
+          Prédio cadastrado! Você já pode anunciar e convidar os vizinhos.
         </Alert>
       )}
       <div className="flex items-start justify-between gap-4">

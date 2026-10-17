@@ -17,8 +17,8 @@ export default function PrivacyPage(): React.JSX.Element {
       <ul>
         <li>Conta (nome, e-mail, senha protegida por hash): para você entrar com segurança.</li>
         <li>
-          Prédio e unidade: para mostrar anúncios dos vizinhos. A unidade só é vista pelo
-          administrador do prédio.
+          Prédio e unidade: para mostrar anúncios dos vizinhos. A unidade nunca aparece para os
+          vizinhos; só a equipe do app pode vê-la, para resolver denúncias.
         </li>
         <li>Telefone (opcional): só para o botão de WhatsApp dos seus anúncios.</li>
         <li>

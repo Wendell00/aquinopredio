@@ -131,7 +131,7 @@ describe("Chat e notificações (e2e)", () => {
   it("bloqueio encerra a conversa (RN-082)", async () => {
     const conversation = (await as(app, buyer.cookie).post(`/api/ads/${adId}/conversations`)).body;
     const [{ user_id: sellerId }] = await db.query(
-      `SELECT user_id FROM building_memberships WHERE building_id = $1 AND role = 'admin'`,
+      `SELECT created_by AS user_id FROM buildings WHERE id = $1`,
       [seller.buildingId],
     );
     await as(app, buyer.cookie).post(`/api/users/${sellerId}/block`).expect(204);

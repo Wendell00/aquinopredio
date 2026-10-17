@@ -11,12 +11,8 @@ export const SETTINGS_DEFAULTS = {
   "buildings.reviewThreshold": 0.5,
   /** RN-029 */
   "buildings.maxResubmissions": 1,
-  /** RN-037 */
-  "buildings.autoApproveJoinDays": 7,
   /** RN-033 */
   "buildings.archiveAfterDays": 180,
-  /** RN-041 */
-  "buildings.maxAdmins": 3,
   /** RN-057 */
   "ads.radiiKm": [0, 0.5, 1, 2, 3, 5],
   /** RN-059 */
