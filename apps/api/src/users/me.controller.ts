@@ -6,12 +6,15 @@ import {
   Get,
   Patch,
   Post,
+  Query,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import {
   type CompleteProfileInput,
   completeProfileInputSchema,
   type Me,
   type UpdateProfileInput,
+  type UsernameAvailability,
   updateProfileInputSchema,
 } from "@repo/shared";
 import { AllowOnboarding, CurrentUser } from "../common/decorators/auth.decorators";
@@ -39,6 +42,15 @@ export class MeController {
   @Get()
   me(@CurrentUser() user: User): Me {
     return toMe(user);
+  }
+
+  @Get("username-availability")
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  usernameAvailability(
+    @CurrentUser() user: User,
+    @Query("username") username = "",
+  ): Promise<UsernameAvailability> {
+    return this.users.usernameAvailability(username.slice(0, 40), user.id);
   }
 
   @Post("profile")

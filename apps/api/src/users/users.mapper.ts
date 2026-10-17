@@ -1,8 +1,10 @@
 import { type Me, notificationPrefsSchema, type OnboardingStep } from "@repo/shared";
 import type { User } from "./user.entity";
 
-export function onboardingStep(user: Pick<User, "termsAcceptedAt" | "status">): OnboardingStep {
-  if (!user.termsAcceptedAt) return "perfil";
+export function onboardingStep(
+  user: Pick<User, "termsAcceptedAt" | "status" | "username">,
+): OnboardingStep {
+  if (!user.termsAcceptedAt || !user.username) return "perfil";
   if (user.status === "onboarding_pendente") return "predio";
   return "concluido";
 }
@@ -11,6 +13,7 @@ export function toMe(user: User): Me {
   return {
     id: user.id,
     name: user.name,
+    username: user.username,
     email: user.email,
     emailVerified: user.emailVerified,
     image: user.image,

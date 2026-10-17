@@ -8,6 +8,7 @@ import { AdminSanctions1760800000000 } from "./1760800000000-admin-sanctions";
 import { AiCalls1760900000000 } from "./1760900000000-ai-calls";
 import { AdReviewFlags1761000000000 } from "./1761000000000-ad-review-flags";
 import { AdAvailabilityOptions1761100000000 } from "./1761100000000-ad-availability-options";
+import { Usernames1761200000000 } from "./1761200000000-usernames";
 
 type MigrationClass = new () => MigrationInterface;
 
@@ -22,4 +23,5 @@ export const migrations: MigrationClass[] = [
   AiCalls1760900000000,
   AdReviewFlags1761000000000,
   AdAvailabilityOptions1761100000000,
+  Usernames1761200000000,
 ];

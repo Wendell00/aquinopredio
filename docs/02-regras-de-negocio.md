@@ -15,6 +15,7 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-007** — O número do apartamento/unidade é informado no vínculo, mas **nunca é exibido publicamente**; é visível apenas para o administrador do prédio e admins da plataforma.
 - **RN-008** — O usuário pode excluir a conta a qualquer momento. A exclusão remove anúncios ativos, anonimiza mensagens enviadas ("Usuário removido") e apaga dados pessoais em até 30 dias (LGPD), mantendo apenas registros exigidos por lei/segurança (logs de moderação).
 - **RN-009** — Contas banidas não podem criar nova conta com o mesmo e-mail, telefone ou dispositivo identificado.
+- **RN-010** — Todo usuário escolhe um **nome de usuário** (`@fulano`) no passo de perfil do cadastro. Ele é **único** no app, tem 3–20 caracteres (letras minúsculas sem acento, números, `_` e `.`, começando por letra) e não pode usar nomes reservados (ex.: `admin`, `suporte`). Pode ser trocado no perfil, se o novo estiver livre. Ao excluir a conta, o nome é liberado.
 
 ## 2.2 Prédios (RN-020 a RN-049)
 

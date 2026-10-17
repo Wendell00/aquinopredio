@@ -11,6 +11,10 @@ export class User {
   @Column("text")
   name: string;
 
+  /** Nome de usuário único (@fulano); nulo até o passo de perfil do onboarding. */
+  @Column("text", { nullable: true })
+  username: string | null;
+
   @Column("text")
   email: string;
 

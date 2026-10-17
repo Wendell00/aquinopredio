@@ -1,6 +1,14 @@
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
-import { createTestApp, ORIGIN, resetRateLimits, signUpAndLogin, uniqueEmail } from "./support/app";
+import {
+  as,
+  createTestApp,
+  ORIGIN,
+  resetRateLimits,
+  signUpAndLogin,
+  uniqueEmail,
+  uniqueUsername,
+} from "./support/app";
 
 describe("Autenticação (e2e)", () => {
   let app: INestApplication;
@@ -68,16 +76,52 @@ describe("Autenticação (e2e)", () => {
       .post("/api/me/profile")
       .set("Cookie", cookie)
       .set("Origin", ORIGIN)
-      .send({ name: "Maria do 42", acceptTerms: false, isAdult: true })
+      .send({ name: "Maria do 42", username: uniqueUsername(), acceptTerms: false, isAdult: true })
       .expect(400);
 
+    const username = uniqueUsername("maria");
     const done = await request(server)
       .post("/api/me/profile")
       .set("Cookie", cookie)
       .set("Origin", ORIGIN)
-      .send({ name: "Maria do 42", acceptTerms: true, isAdult: true })
+      .send({
+        name: "Maria do 42",
+        username: username.toUpperCase(),
+        acceptTerms: true,
+        isAdult: true,
+      })
       .expect(201);
-    expect(done.body).toMatchObject({ name: "Maria do 42", onboardingStep: "predio" });
+    expect(done.body).toMatchObject({ name: "Maria do 42", username, onboardingStep: "predio" });
+  });
+
+  it("nome de usuário é único: avisa antes e recusa repetido", async () => {
+    const first = await signUpAndLogin(app);
+    const second = await signUpAndLogin(app);
+    const username = uniqueUsername("unico");
+    const profile = { name: "Vizinho", username, acceptTerms: true, isAdult: true };
+
+    await as(app, first.cookie).post("/api/me/profile").send(profile).expect(201);
+
+    const check = await as(app, second.cookie)
+      .get(`/api/me/username-availability?username=${username}`)
+      .expect(200);
+    expect(check.body).toMatchObject({ available: false });
+    await as(app, second.cookie).post("/api/me/profile").send(profile).expect(409);
+
+    const own = await as(app, first.cookie)
+      .get(`/api/me/username-availability?username=${username}`)
+      .expect(200);
+    expect(own.body).toMatchObject({ available: true });
+  });
+
+  it("nome de usuário recusa formato inválido e nomes reservados", async () => {
+    const { cookie } = await signUpAndLogin(app);
+    for (const username of ["ab", "1abc", "com espaço", "admin", "joão"]) {
+      await as(app, cookie)
+        .post("/api/me/profile")
+        .send({ name: "Vizinho", username, acceptTerms: true, isAdult: true })
+        .expect(400);
+    }
   });
 
   it("recusa alterações vindas de outra origem nas rotas do app", async () => {

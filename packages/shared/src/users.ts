@@ -22,6 +22,55 @@ export const displayNameSchema = z
   .min(2, "Informe pelo menos 2 caracteres")
   .max(60, "Use no máximo 60 caracteres");
 
+/** Nomes que confundem o vizinho (parecem oficiais) ou colidem com rotas do app. */
+const RESERVED_USERNAMES = new Set([
+  "admin",
+  "administrador",
+  "aquinopredio",
+  "aqui_no_predio",
+  "suporte",
+  "ajuda",
+  "moderacao",
+  "sindico",
+  "oficial",
+  "sistema",
+  "root",
+  "me",
+]);
+
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 20;
+
+/** Nome de usuário único (@fulano): minúsculas, números, "_" e "."; começa com letra. */
+export const usernameSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/^@/, "").toLowerCase())
+  .pipe(
+    z
+      .string()
+      .min(USERNAME_MIN_LENGTH, `Use pelo menos ${USERNAME_MIN_LENGTH} caracteres`)
+      .max(USERNAME_MAX_LENGTH, `Use no máximo ${USERNAME_MAX_LENGTH} caracteres`)
+      .regex(/^[a-z]/, "Comece com uma letra")
+      .regex(/^[a-z0-9_.]+$/, "Use só letras sem acento, números, _ e .")
+      .refine(
+        (value) => !value.includes("..") && !value.endsWith("."),
+        "Ponto não pode repetir nem ficar no fim",
+      )
+      .refine(
+        (value) => !RESERVED_USERNAMES.has(value),
+        "Este nome de usuário não está disponível",
+      ),
+  );
+
+export const usernameAvailabilitySchema = z.object({
+  username: z.string(),
+  available: z.boolean(),
+  /** Motivo quando indisponível (formato inválido ou já em uso). */
+  reason: z.string().nullable(),
+});
+export type UsernameAvailability = z.infer<typeof usernameAvailabilitySchema>;
+
 export const passwordSchema = z
   .string()
   .min(PASSWORD_MIN_LENGTH, `A senha precisa ter pelo menos ${PASSWORD_MIN_LENGTH} caracteres`)
@@ -50,9 +99,10 @@ export const phoneSchema = z
   .transform((value) => (value.startsWith("+") ? value : `+55${value}`))
   .pipe(z.string().regex(/^\+55\d{10,11}$/, "Informe um celular com DDD"));
 
-/** Passo 1 do onboarding: nome de exibição + aceite de termos + declaração de 18+ (RN-004, RN-006). */
+/** Passo 1 do onboarding: nome de exibição, nome de usuário, aceite de termos e 18+ (RN-004, RN-006). */
 export const completeProfileInputSchema = z.object({
   name: displayNameSchema,
+  username: usernameSchema,
   acceptTerms: z.literal(true, {
     error: "É preciso aceitar os Termos e a Política de Privacidade",
   }),
@@ -63,6 +113,7 @@ export type CompleteProfileInput = z.infer<typeof completeProfileInputSchema>;
 export const updateProfileInputSchema = z
   .object({
     name: displayNameSchema,
+    username: usernameSchema,
     phone: phoneSchema.nullable(),
     image: z.url().nullable(),
   })
@@ -98,6 +149,8 @@ export type OnboardingStep = z.infer<typeof onboardingStepSchema>;
 export const meSchema = z.object({
   id: z.uuid(),
   name: z.string(),
+  /** Nulo só até o passo de perfil do onboarding. */
+  username: z.string().nullable(),
   email: z.string(),
   emailVerified: z.boolean(),
   image: z.string().nullable(),

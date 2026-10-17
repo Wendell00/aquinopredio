@@ -116,6 +116,9 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
               )}
             </p>
             <p className="text-sm text-muted">
+              {ad.seller.username && (
+                <span className="font-semibold">@{ad.seller.username} · </span>
+              )}
               No app desde{" "}
               {new Date(ad.seller.memberSince).toLocaleDateString("pt-BR", {
                 month: "long",

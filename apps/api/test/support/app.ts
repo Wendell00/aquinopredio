@@ -101,12 +101,20 @@ export function as(app: INestApplication, cookie: string) {
   };
 }
 
+/** Nome de usuário único por execução (o índice é único no banco todo). */
+export function uniqueUsername(prefix = "vizinho"): string {
+  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`.slice(
+    0,
+    20,
+  );
+}
+
 /** Usuário pronto para o passo do prédio (cadastro + perfil). */
 export async function onboardedProfile(app: INestApplication, name = "Vizinha Teste") {
   const session = await signUpAndLogin(app, { name });
   await as(app, session.cookie)
     .post("/api/me/profile")
-    .send({ name, acceptTerms: true, isAdult: true })
+    .send({ name, username: uniqueUsername(), acceptTerms: true, isAdult: true })
     .expect(201);
   return session;
 }

@@ -34,6 +34,7 @@ erDiagram
 | phone | text, único, nulo | E.164 |
 | phone_verified_at | timestamptz, nulo | RN-002 |
 | display_name | text | |
+| username | text, único, nulo | RN-010; nulo só até o passo de perfil |
 | avatar_url | text, nulo | |
 | status | enum | `onboarding_pendente`, `ativo`, `suspenso`, `banido`, `excluido` |
 | suspended_until | timestamptz, nulo | RN-095 |

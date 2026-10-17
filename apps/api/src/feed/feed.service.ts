@@ -201,7 +201,7 @@ export class FeedService {
     const [row] = await this.dataSource.query(
       `SELECT a.*, b.name AS building_name, b.district AS building_district,
               c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
-              u.name AS seller_name, u.image AS seller_image, u.created_at AS seller_since,
+              u.name AS seller_name, u.username AS seller_username, u.image AS seller_image, u.created_at AS seller_since,
               EXISTS (SELECT 1 FROM building_memberships sm
                       WHERE sm.user_id = a.user_id AND sm.building_id = a.building_id AND sm.verified_at IS NOT NULL) AS seller_verified,
               EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.ad_id = a.id) AS favorited,
@@ -261,6 +261,7 @@ export class FeedService {
       seller: {
         id: row.user_id,
         name: row.seller_name,
+        username: row.seller_username,
         image: row.seller_image,
         verified: row.seller_verified,
         memberSince: new Date(row.seller_since).toISOString(),

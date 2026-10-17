@@ -64,6 +64,7 @@ export type FeedPage = z.infer<typeof feedPageSchema>;
 export const publicUserSchema = z.object({
   id: z.uuid(),
   name: z.string(),
+  username: z.string().nullable(),
   image: z.string().nullable(),
   verified: z.boolean(),
   memberSince: z.iso.datetime(),

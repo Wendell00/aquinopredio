@@ -19,7 +19,7 @@ export class AccountService {
   async export(user: User): Promise<Record<string, unknown>> {
     const q = <T>(sql: string) => this.dataSource.query(sql, [user.id]) as Promise<T[]>;
     const [profile] = await q<Record<string, unknown>>(
-      `SELECT id, name, email, phone, image, status, created_at, terms_accepted_at, notification_prefs FROM users WHERE id = $1`,
+      `SELECT id, name, username, email, phone, image, status, created_at, terms_accepted_at, notification_prefs FROM users WHERE id = $1`,
     );
     return {
       exportado_em: new Date().toISOString(),
@@ -95,7 +95,7 @@ export class AccountService {
       await manager.query(`UPDATE messages SET upload_id = NULL WHERE sender_id = $1`, [user.id]);
       await manager.query(`DELETE FROM uploads WHERE owner_id = $1`, [user.id]);
       await manager.query(
-        `UPDATE users SET status = 'excluido', deleted_at = now(), name = 'Usuário removido',
+        `UPDATE users SET status = 'excluido', deleted_at = now(), name = 'Usuário removido', username = NULL,
            email = 'removido+' || id || '@invalid.local', email_verified = false, phone = NULL, image = NULL,
            primary_building_id = NULL, notification_prefs = '{}', updated_at = now()
          WHERE id = $1`,

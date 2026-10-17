@@ -1,7 +1,23 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { CompleteProfileInput, NotificationPrefs, UpdateProfileInput } from "@repo/shared";
-import { Repository } from "typeorm";
+import {
+  type CompleteProfileInput,
+  type NotificationPrefs,
+  type UpdateProfileInput,
+  type UsernameAvailability,
+  usernameSchema,
+} from "@repo/shared";
+import { QueryFailedError, Repository } from "typeorm";
+
+const USERNAME_TAKEN = "Este nome de usuário já está em uso";
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    error instanceof QueryFailedError &&
+    (error.driverError as { code?: string } | undefined)?.code === "23505"
+  );
+}
+
 import { User } from "./user.entity";
 
 @Injectable()
@@ -27,17 +43,59 @@ export class UsersService {
     return user;
   }
 
-  /** Passo 1 do onboarding: nome + aceite de termos + 18+ (RN-004, RN-006). */
+  /** Passo 1 do onboarding: nome, nome de usuário, aceite de termos e 18+ (RN-004, RN-006). */
   async completeProfile(user: User, input: CompleteProfileInput): Promise<User> {
+    await this.assertUsernameFree(input.username, user.id);
     user.name = input.name;
+    user.username = input.username;
     user.termsAcceptedAt ??= new Date();
     user.updatedAt = new Date();
-    return this.repo.save(user);
+    return this.saveProfile(user);
   }
 
   async updateProfile(user: User, input: UpdateProfileInput): Promise<User> {
+    if (input.username) await this.assertUsernameFree(input.username, user.id);
     Object.assign(user, input, { updatedAt: new Date() });
-    return this.repo.save(user);
+    return this.saveProfile(user);
+  }
+
+  /** Consulta para o formulário avisar antes de enviar; a garantia é o índice único. */
+  async usernameAvailability(raw: string, exceptUserId: string): Promise<UsernameAvailability> {
+    const parsed = usernameSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        username: raw,
+        available: false,
+        reason: parsed.error.issues[0]?.message ?? "Nome inválido",
+      };
+    }
+    const taken = await this.isUsernameTaken(parsed.data, exceptUserId);
+    return {
+      username: parsed.data,
+      available: !taken,
+      reason: taken ? USERNAME_TAKEN : null,
+    };
+  }
+
+  private async isUsernameTaken(username: string, exceptUserId: string): Promise<boolean> {
+    const found = await this.repo.findOneBy({ username });
+    return Boolean(found && found.id !== exceptUserId);
+  }
+
+  private async assertUsernameFree(username: string, exceptUserId: string): Promise<void> {
+    if (await this.isUsernameTaken(username, exceptUserId)) {
+      throw new ConflictException(USERNAME_TAKEN);
+    }
+  }
+
+  // Duas pessoas podem pedir o mesmo nome ao mesmo tempo: o índice único decide.
+  private async saveProfile(user: User): Promise<User> {
+    try {
+      return await this.repo.save(user);
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new ConflictException(USERNAME_TAKEN);
+      throw error;
+    }
   }
 
   async updateNotificationPrefs(user: User, prefs: NotificationPrefs): Promise<User> {

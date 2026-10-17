@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { displayNameSchema, type Me, phoneSchema } from "@repo/shared";
+import { displayNameSchema, type Me, phoneSchema, usernameSchema } from "@repo/shared";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { updateProfile } from "@/features/me/api/me-api";
+import { UsernameField } from "@/features/me/components/username-field";
 import { ApiError } from "@/lib/api/client";
 
 const schema = z.object({
   name: displayNameSchema,
+  username: usernameSchema,
   phone: z
     .string()
     .refine(
@@ -21,24 +23,29 @@ const schema = z.object({
       "Informe um celular com DDD",
     ),
 });
-type Values = z.infer<typeof schema>;
+type Values = z.input<typeof schema>;
 
 export function ProfileForm({ me }: { me: Me }): React.JSX.Element {
   const router = useRouter();
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting, isDirty },
     reset,
-  } = useForm<Values>({
+  } = useForm<Values, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { name: me.name, phone: me.phone ?? "" },
+    defaultValues: { name: me.name, username: me.username ?? "", phone: me.phone ?? "" },
   });
 
-  async function onSubmit(values: Values): Promise<void> {
+  async function onSubmit(values: z.output<typeof schema>): Promise<void> {
     try {
-      const updated = await updateProfile({ name: values.name, phone: values.phone || null });
-      reset({ name: updated.name, phone: updated.phone ?? "" });
+      const updated = await updateProfile({
+        name: values.name,
+        username: values.username,
+        phone: values.phone || null,
+      });
+      reset({ name: updated.name, username: updated.username ?? "", phone: updated.phone ?? "" });
       toast.success("Perfil atualizado");
       router.refresh();
     } catch (error) {
@@ -59,6 +66,12 @@ export function ProfileForm({ me }: { me: Me }): React.JSX.Element {
           />
         )}
       </Field>
+      <UsernameField
+        registration={register("username")}
+        value={watch("username")}
+        current={me.username}
+        error={errors.username?.message}
+      />
       <Field
         label="Celular (opcional)"
         hint="Usado só no botão de WhatsApp dos seus anúncios. Nunca aparece no app."

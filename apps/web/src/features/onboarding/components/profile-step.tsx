@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { completeProfile } from "@/features/me/api/me-api";
+import { UsernameField } from "@/features/me/components/username-field";
 import { ApiError } from "@/lib/api/client";
 
 export function ProfileStep({ me }: { me: Me }): React.JSX.Element {
@@ -22,10 +23,11 @@ export function ProfileStep({ me }: { me: Me }): React.JSX.Element {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CompleteProfileInput>({
     resolver: zodResolver(completeProfileInputSchema),
-    defaultValues: { name: me.name },
+    defaultValues: { name: me.name, username: me.username ?? "" },
   });
 
   async function onSubmit(values: CompleteProfileInput): Promise<void> {
@@ -58,6 +60,12 @@ export function ProfileStep({ me }: { me: Me }): React.JSX.Element {
           />
         )}
       </Field>
+      <UsernameField
+        registration={register("username")}
+        value={watch("username") ?? ""}
+        current={me.username}
+        error={errors.username?.message}
+      />
       <div className="flex flex-col gap-4 rounded-xl border border-line bg-white p-4">
         <Checkbox
           id="acceptTerms"
