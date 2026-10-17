@@ -11,6 +11,7 @@ import { AdAvailabilityOptions1761100000000 } from "./1761100000000-ad-availabil
 import { Usernames1761200000000 } from "./1761200000000-usernames";
 import { RemoveBuildingAdmin1761300000000 } from "./1761300000000-remove-building-admin";
 import { Plans1761400000000 } from "./1761400000000-plans";
+import { Reviews1761500000000 } from "./1761500000000-reviews";
 
 type MigrationClass = new () => MigrationInterface;
 
@@ -28,4 +29,5 @@ export const migrations: MigrationClass[] = [
   Usernames1761200000000,
   RemoveBuildingAdmin1761300000000,
   Plans1761400000000,
+  Reviews1761500000000,
 ];

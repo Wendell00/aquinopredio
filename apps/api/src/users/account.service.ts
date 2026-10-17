@@ -37,6 +37,16 @@ export class AccountService {
         `SELECT conversation_id, body, created_at FROM messages WHERE sender_id = $1 ORDER BY created_at`,
       ),
       favoritos: await q(`SELECT ad_id, created_at FROM favorites WHERE user_id = $1`),
+      indicacoes: await q(`SELECT ad_id, created_at FROM ad_recommendations WHERE user_id = $1`),
+      avaliacoes_feitas: await q(
+        `SELECT reviewed_id, rating, comment, created_at, updated_at FROM user_reviews WHERE reviewer_id = $1`,
+      ),
+      avaliacoes_recebidas: await q(
+        `SELECT rating, comment, created_at FROM user_reviews WHERE reviewed_id = $1`,
+      ),
+      assinatura: await q(
+        `SELECT status, current_period_end, cancel_at_period_end, created_at FROM subscriptions WHERE user_id = $1`,
+      ),
       bloqueios: await q(`SELECT blocked_id, created_at FROM user_blocks WHERE blocker_id = $1`),
       denuncias_feitas: await q(
         `SELECT target_type, reason, details, status, created_at FROM reports WHERE reporter_id = $1`,
@@ -97,6 +107,9 @@ export class AccountService {
       );
       await manager.query(`UPDATE messages SET upload_id = NULL WHERE sender_id = $1`, [user.id]);
       await manager.query(`DELETE FROM uploads WHERE owner_id = $1`, [user.id]);
+      // Avaliações escritas e indicações são dados pessoais de quem sai (RN-008).
+      await manager.query(`DELETE FROM user_reviews WHERE reviewer_id = $1`, [user.id]);
+      await manager.query(`DELETE FROM ad_recommendations WHERE user_id = $1`, [user.id]);
       await manager.query(
         `UPDATE users SET status = 'excluido', deleted_at = now(), name = 'Usuário removido', username = NULL,
            email = 'removido+' || id || '@invalid.local', email_verified = false, phone = NULL, image = NULL,

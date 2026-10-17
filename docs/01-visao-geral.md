@@ -53,4 +53,4 @@ Incluído:
 - Favoritos, denúncias, moderação automática por IA.
 - Notificações push (Web Push) e instalação PWA.
 
-Fora do MVP (ver [Roadmap](./07-roadmap.md)): pagamentos dentro do app, anúncios patrocinados, avaliações públicas, painel de síndico, mural oficial do condomínio.
+Fora do MVP (ver [Roadmap](./07-roadmap.md)): anúncios patrocinados, painel de síndico, mural oficial do condomínio. (Plano Pro com Stripe e avaliações do anunciante foram adicionados em outubro/2026.)

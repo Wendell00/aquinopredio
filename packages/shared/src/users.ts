@@ -132,6 +132,7 @@ export const notificationTypeSchema = z.enum([
   "favorito_alterado",
   "denuncia_resolvida",
   "plano_atualizado",
+  "nova_avaliacao",
 ]);
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
 

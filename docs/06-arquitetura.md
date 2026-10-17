@@ -66,7 +66,7 @@ No `apps/web`: `API_INTERNAL_URL` (só no servidor, destino do proxy `/api`) e `
 
 ## 6.4 Módulos do backend (NestJS)
 
-Implementados em `apps/api/src`: `auth` (Better Auth + guard), `users` (perfil, conta/LGPD), `buildings` (busca, cadastro, duplicidade, vínculos, `verification/` em fila, `maintenance/` com o arquivamento de prédios inativos), `geo`, `ai` (OpenRouter, prompts versionados em `ai/prompts/`), `uploads` + `storage`, `ads` (anúncios, rascunhos de IA, `moderation/` em fila, expiração), `feed` (feed, detalhe, favoritos, bloqueio, denúncias), `chat`, `notifications` (central + Web Push), `billing` (planos Free/Pro, Stripe Checkout/portal e webhook), `admin` (painel da plataforma, sanções), `settings`, `audit`.
+Implementados em `apps/api/src`: `auth` (Better Auth + guard), `users` (perfil, conta/LGPD), `buildings` (busca, cadastro, duplicidade, vínculos, `verification/` em fila, `maintenance/` com o arquivamento de prédios inativos), `geo`, `ai` (OpenRouter, prompts versionados em `ai/prompts/`), `uploads` + `storage`, `ads` (anúncios, rascunhos de IA, `moderation/` em fila, expiração), `feed` (feed, detalhe, favoritos, bloqueio, denúncias), `chat`, `reviews` (indicações e avaliações), `notifications` (central + Web Push), `billing` (planos Free/Pro, Stripe Checkout/portal e webhook), `admin` (painel da plataforma, sanções), `settings`, `audit`.
 
 ## 6.5 Requisitos PWA
 

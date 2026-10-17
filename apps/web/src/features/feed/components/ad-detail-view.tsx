@@ -2,12 +2,29 @@
 
 import { AD_AVAILABILITY_LABELS, AD_TYPE_LABELS, type AdDetail, formatPrice } from "@repo/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Ban, Flag, Heart, MapPin, MessageCircle, Pencil, Share2 } from "lucide-react";
+import {
+  BadgeCheck,
+  Ban,
+  Copy,
+  Flag,
+  Heart,
+  MapPin,
+  MessageCircle,
+  Pencil,
+  Share2,
+  ThumbsUp,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button, buttonClasses } from "@/components/ui/button";
+import {
+  RecommendButton,
+  recommendationLabel,
+} from "@/features/reviews/components/recommend-button";
+import { SellerReviews } from "@/features/reviews/components/seller-reviews";
+import { Stars } from "@/features/reviews/components/stars";
 import { ApiError } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { formatDistance, timeAgo } from "@/lib/format";
@@ -35,6 +52,11 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
   });
   const toggle = useToggleFavorite();
   const [opening, setOpening] = useState(false);
+  const [shareOptions, setShareOptions] = useState(false);
+  const shareUrl =
+    typeof window === "undefined" ? "" : `${window.location.origin}/anuncios/${ad.id}`;
+  const shareText = `Indico “${ad.title}” no Aqui no Prédio`;
+  const recommendedBy = recommendationLabel(ad.recommendation.count);
 
   const where = ad.building.sameBuilding
     ? "No seu prédio"
@@ -51,17 +73,21 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
     }
   }
 
+  // O link só abre para quem tem conta e mora perto (a página exige login).
   async function share(): Promise<void> {
-    const url = `${window.location.origin}/anuncios/${ad.id}`;
-    // O link só abre para quem tem conta e mora perto (a página exige login).
     if (navigator.share) {
       await navigator
-        .share({ title: ad.title, text: "Olha esse anúncio no Aqui no Prédio", url })
+        .share({ title: ad.title, text: shareText, url: shareUrl })
         .catch(() => undefined);
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copiado");
+      return;
     }
+    setShareOptions((open) => !open);
+  }
+
+  async function copyLink(): Promise<void> {
+    await navigator.clipboard.writeText(shareUrl);
+    toast.success("Link copiado");
+    setShareOptions(false);
   }
 
   async function block(): Promise<void> {
@@ -99,6 +125,11 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
           {ad.publishedAt && (
             <p className="text-sm text-muted">Publicado {timeAgo(ad.publishedAt)}</p>
           )}
+          {recommendedBy && (
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-leaf">
+              <ThumbsUp className="size-4" aria-hidden /> {recommendedBy}
+            </p>
+          )}
         </div>
 
         <section className="flex items-center gap-3 rounded-2xl border border-line bg-white p-4">
@@ -115,6 +146,15 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
                 />
               )}
             </p>
+            {ad.seller.rating.average !== null && (
+              <a href="#avaliacoes" className="flex items-center gap-1.5 text-sm hover:underline">
+                <Stars value={ad.seller.rating.average} />
+                <span className="font-semibold">
+                  {ad.seller.rating.average.toLocaleString("pt-BR")}
+                </span>
+                <span className="text-muted">({ad.seller.rating.count})</span>
+              </a>
+            )}
             <p className="text-sm text-muted">
               {ad.seller.username && (
                 <span className="font-semibold">@{ad.seller.username} · </span>
@@ -183,7 +223,13 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
                 />
                 {ad.favorited ? "Salvo" : "Salvar"}
               </Button>
-              <Button variant="secondary" size="sm" onClick={share}>
+              <RecommendButton adId={ad.id} recommendation={ad.recommendation} />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={share}
+                aria-expanded={shareOptions || undefined}
+              >
                 <Share2 className="size-4" aria-hidden /> Compartilhar
               </Button>
               <ReportDialog
@@ -199,12 +245,38 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
                 <Ban className="size-4" aria-hidden /> Bloquear {ad.seller.name.split(" ")[0]}
               </Button>
             </div>
+            {shareOptions && (
+              <div className="flex flex-wrap gap-2 rounded-xl border border-line bg-white p-3">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`${shareText}: ${shareUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(buttonClasses("secondary", "sm"), "text-[#128c7e]")}
+                >
+                  <WhatsappIcon /> Enviar no WhatsApp
+                </a>
+                <Button variant="secondary" size="sm" onClick={copyLink}>
+                  <Copy className="size-4" aria-hidden /> Copiar link
+                </Button>
+              </div>
+            )}
           </>
         )}
         <p className="flex items-start gap-2 rounded-xl bg-warn-soft p-3 text-[0.85rem] text-warn">
           <MessageCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           Combine pelo chat e prefira pagar na entrega. Nunca envie códigos ou senhas.
         </p>
+
+        <section
+          id="avaliacoes"
+          aria-labelledby="avaliacoes-titulo"
+          className="flex flex-col gap-3"
+        >
+          <h2 id="avaliacoes-titulo" className="font-bold">
+            {ad.isOwner ? "Suas avaliações" : `Avaliações de ${ad.seller.name.split(" ")[0]}`}
+          </h2>
+          <SellerReviews userId={ad.seller.id} name={ad.seller.name} isSelf={ad.isOwner} />
+        </section>
       </div>
     </article>
   );

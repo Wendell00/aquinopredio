@@ -23,6 +23,7 @@ import { MailModule } from "./mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { RedisModule } from "./redis/redis.module";
+import { ReviewsModule } from "./reviews/reviews.module";
 import { SettingsModule } from "./settings/settings.module";
 import { StorageModule } from "./storage/storage.module";
 import { UploadsModule } from "./uploads/uploads.module";
@@ -69,6 +70,7 @@ import { UsersModule } from "./users/users.module";
     AdsModule,
     FeedModule,
     ChatModule,
+    ReviewsModule,
     AdminModule,
   ],
   // Ordem importa: primeiro a sessão (AuthGuard), depois o rate limit por usuário.

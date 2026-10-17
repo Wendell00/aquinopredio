@@ -6,6 +6,7 @@ import {
   categorySchema,
   priceModeSchema,
 } from "./ads";
+import { ratingSummarySchema, recommendationSchema } from "./reviews";
 
 /** Faixas de distância do filtro (RN-072). 0 = só meu prédio. */
 export const FEED_DISTANCES_KM = [0, 1, 3, 5, 10] as const;
@@ -70,6 +71,8 @@ export const publicUserSchema = z.object({
   image: z.string().nullable(),
   verified: z.boolean(),
   memberSince: z.iso.datetime(),
+  /** Avaliações recebidas como anunciante (RN-087). */
+  rating: ratingSummarySchema,
 });
 export type PublicUser = z.infer<typeof publicUserSchema>;
 
@@ -92,6 +95,8 @@ export const adDetailSchema = z.object({
     distanceM: z.number().int().nullable(),
   }),
   seller: publicUserSchema,
+  /** Vizinhos que indicam este anúncio (RN-086). */
+  recommendation: recommendationSchema,
   whatsappEnabled: z.boolean(),
   favorited: z.boolean(),
   isOwner: z.boolean(),

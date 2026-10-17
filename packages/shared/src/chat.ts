@@ -106,4 +106,5 @@ export const NOTIFICATION_TYPE_LABELS: Record<z.infer<typeof notificationTypeSch
   favorito_alterado: "Mudanças em favoritos",
   denuncia_resolvida: "Resultado de denúncias",
   plano_atualizado: "Mudanças no seu plano",
+  nova_avaliacao: "Novas avaliações",
 };

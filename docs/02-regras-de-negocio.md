@@ -107,6 +107,9 @@ Regras numeradas por módulo. Valores `[configurável]` devem ser parametrizados
 - **RN-083** — O usuário pode **favoritar** anúncios. Se um favorito for alterado (preço) ou estiver perto de expirar, o usuário pode ser notificado.
 - **RN-084** — Limite antispam de **20 novas conversas por dia** por usuário `[configurável]`.
 - **RN-085** — Mensagens passam por filtro automático (palavrões, golpes conhecidos, links suspeitos). Mensagens com links externos exibem aviso de segurança.
+- **RN-086** — **Indicar:** o morador pode indicar um anúncio que consegue ver (1 indicação por pessoa por anúncio, pode desfazer). O anúncio mostra "X vizinhos indicam". O dono não indica o próprio anúncio.
+- **RN-087** — **Avaliar o anunciante:** nota de 1 a 5 e comentário opcional (até 500 caracteres, sem links nem termos barrados pela moderação). Só avalia quem conversou com o anunciante pelo chat **e recebeu resposta**; uma avaliação por pessoa avaliada, que pode ser editada ou apagada. A média e as avaliações aparecem no anúncio e no perfil do anunciante, para quem enxerga algum anúncio dele ou já conversou com ele. Bloqueio entre os dois impede avaliar. O anunciante é notificado da nova avaliação.
+- **RN-088** — **Compartilhar:** o anúncio pode ser compartilhado pelo menu do celular, pelo WhatsApp ou copiando o link; o link só abre para quem tem conta e pode ver o anúncio.
 
 ## 2.6 Moderação e denúncias (RN-090 a RN-109)
 

@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { MyBuildings } from "@/features/profile/components/my-buildings";
 import { ProfileForm } from "@/features/profile/components/profile-form";
+import { SellerReviews } from "@/features/reviews/components/seller-reviews";
 import { serverGet } from "@/lib/api/server";
 import { getMe } from "@/lib/session/get-me";
 
@@ -43,6 +44,11 @@ export default async function ProfilePage(): Promise<React.JSX.Element> {
       <section className="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
         <h2 className="text-lg font-extrabold">Seus dados</h2>
         <ProfileForm me={me} />
+      </section>
+
+      <section id="avaliacoes" className="flex flex-col gap-3">
+        <h2 className="text-lg font-extrabold">Suas avaliações</h2>
+        <SellerReviews userId={me.id} name={me.name} isSelf />
       </section>
 
       <section className="flex flex-col gap-3">

@@ -199,6 +199,20 @@ export class FeedService {
       .map((row) => this.toFeedAd(row));
   }
 
+  /** O leitor enxerga algum anúncio ativo da pessoa (mesma regra do feed, RN-058). */
+  async canSeeAnyAdOf(user: User, sellerId: string): Promise<boolean> {
+    const buildings = await this.viewerBuildings(user.id);
+    if (!buildings.length) return false;
+    const [row] = await this.dataSource.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM ads a JOIN buildings v ON v.id = ANY($3::uuid[])
+         WHERE a.user_id = $2 AND ${VISIBLE}
+       ) AS visible`,
+      [user.id, sellerId, buildings.map((building) => building.id)],
+    );
+    return Boolean(row?.visible);
+  }
+
   /** Detalhe do anúncio: o dono sempre vê; os demais só se for visível de algum prédio deles. */
   async detail(user: User, adId: string): Promise<AdDetail> {
     const buildings = await this.viewerBuildings(user.id);
@@ -210,11 +224,18 @@ export class FeedService {
                       WHERE sm.user_id = a.user_id AND sm.building_id = a.building_id AND sm.verified_at IS NOT NULL) AS seller_verified,
               EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.ad_id = a.id) AS favorited,
               EXISTS (SELECT 1 FROM user_blocks ub WHERE ub.blocker_id = $1 AND ub.blocked_id = a.user_id) AS blocked,
+              rating.average AS seller_rating_average, rating.count AS seller_rating_count,
+              (SELECT count(*)::int FROM ad_recommendations r WHERE r.ad_id = a.id) AS recommendations,
+              EXISTS (SELECT 1 FROM ad_recommendations r WHERE r.ad_id = a.id AND r.user_id = $1) AS recommended_by_me,
               view.same_building, view.distance_m
        FROM ads a
        JOIN buildings b ON b.id = a.building_id
        JOIN categories c ON c.id = a.category_id
        JOIN users u ON u.id = a.user_id
+       CROSS JOIN LATERAL (
+         SELECT round(avg(ur.rating), 1)::float AS average, count(*)::int AS count
+         FROM user_reviews ur WHERE ur.reviewed_id = a.user_id
+       ) rating
        LEFT JOIN LATERAL (
          SELECT a.building_id = v.id AS same_building, ST_Distance(a.location, v.location) AS distance_m
          FROM buildings v WHERE v.id = ANY($3::uuid[]) AND ${VISIBLE}
@@ -269,7 +290,9 @@ export class FeedService {
         image: row.seller_image,
         verified: row.seller_verified,
         memberSince: new Date(row.seller_since).toISOString(),
+        rating: { average: row.seller_rating_average, count: row.seller_rating_count },
       },
+      recommendation: { count: row.recommendations, recommendedByMe: row.recommended_by_me },
       whatsappEnabled: row.whatsapp_enabled,
       favorited: row.favorited,
       isOwner,

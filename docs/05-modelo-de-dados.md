@@ -157,3 +157,18 @@ ORDER BY (a.building_id = b.id) DESC,
 | status | text, nulo | status do Stripe (`active`, `past_due`, `canceled`…) |
 | current_period_end | timestamptz, nulo | fim do período pago |
 | cancel_at_period_end | bool | cancelamento agendado |
+
+### `ad_recommendations`
+| Campo | Tipo | Observação |
+|-------|------|-----------|
+| ad_id, user_id | PK composta | uma indicação por pessoa por anúncio (RN-086) |
+| created_at | timestamptz | |
+
+### `user_reviews`
+| Campo | Tipo | Observação |
+|-------|------|-----------|
+| reviewer_id, reviewed_id | FK users, únicos juntos | uma avaliação por par (RN-087) |
+| ad_id | FK ads, nulo | anúncio da conversa que liberou a avaliação |
+| rating | smallint | 1 a 5 |
+| comment | text, nulo | até 500 caracteres |
+
