@@ -287,11 +287,13 @@ export class AdminService {
                 WHEN 'user' THEN (SELECT name FROM users WHERE id = r.target_id)
                 WHEN 'building' THEN (SELECT name FROM buildings WHERE id = r.target_id)
                 WHEN 'message' THEN (SELECT left(coalesce(body, '[foto]'), 120) FROM messages WHERE id = r.target_id)
+                WHEN 'referral' THEN (SELECT provider_name || ' — ' || left(service, 100) FROM service_referrals WHERE id = r.target_id)
               END AS target_label,
               CASE r.target_type
                 WHEN 'ad' THEN (SELECT user_id FROM ads WHERE id = r.target_id)
                 WHEN 'user' THEN r.target_id
                 WHEN 'message' THEN (SELECT sender_id FROM messages WHERE id = r.target_id)
+                WHEN 'referral' THEN (SELECT author_id FROM service_referrals WHERE id = r.target_id)
               END AS target_user_id
        FROM reports r LEFT JOIN users rep ON rep.id = r.reporter_id
        WHERE r.status = 'aberta'
@@ -319,6 +321,16 @@ export class AdminService {
       [reportId, input.status, admin.id, input.note ?? null],
     );
     if (!report) throw new NotFoundException("Denúncia não encontrada ou já resolvida");
+    // Indicação de prestador (RN-089): procedente tira do ar; improcedente devolve a ocultada
+    // quando não restam denúncias abertas.
+    await this.dataSource.query(
+      `UPDATE service_referrals s SET status = CASE WHEN $2::text = 'procedente' THEN 'removida'::referral_status ELSE 'ativa' END
+       FROM reports r
+       WHERE r.id = $1 AND r.target_type = 'referral' AND s.id = r.target_id
+         AND ($2::text = 'procedente' OR (s.status = 'oculta' AND NOT EXISTS (
+           SELECT 1 FROM reports o WHERE o.target_type = 'referral' AND o.target_id = s.id AND o.status = 'aberta')))`,
+      [reportId, input.status],
+    );
     if (report.reporter_id) {
       void this.notifications.notify(report.reporter_id, {
         type: "denuncia_resolvida",

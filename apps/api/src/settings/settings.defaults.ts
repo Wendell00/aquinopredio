@@ -37,6 +37,10 @@ export const SETTINGS_DEFAULTS = {
   "reports.autoHideThreshold": 3,
   /** RN-084 */
   "chat.newConversationsPerDay": 20,
+  /** RN-089: alcance das indicações de prestadores a partir do prédio de quem indicou */
+  "referrals.radiusKm": 1,
+  /** RN-089 */
+  "referrals.maxPerDay": 10,
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_DEFAULTS;

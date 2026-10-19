@@ -16,6 +16,7 @@ Pendências conhecidas antes do lançamento: confirmação de telefone por SMS/W
 ## Fase 2 — Confiança e engajamento
 - Selo de morador verificado (vizinhos / comprovante).
 - ✅ Avaliações pós-contato (nota 1–5 + comentário, só para quem conversou com o anunciante) e indicação de anúncios (out/2026).
+- ✅ Indicações de prestadores de fora do app, numa aba da tela inicial (out/2026).
 - Alertas de busca salvos.
 - Perfil do anunciante com portfólio (todos os anúncios e avaliações).
 - Resumo diário/semanal "novidades no seu prédio".

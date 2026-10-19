@@ -106,7 +106,7 @@ export const adDetailSchema = z.object({
 });
 export type AdDetail = z.infer<typeof adDetailSchema>;
 
-export const reportTargetSchema = z.enum(["ad", "user", "message", "building"]);
+export const reportTargetSchema = z.enum(["ad", "user", "message", "building", "referral"]);
 export const reportReasonSchema = z.enum([
   "golpe",
   "conteudo_improprio",

@@ -24,6 +24,7 @@ export const config = {
     "/inicio/:path*",
     "/anuncios/:path*",
     "/anunciar/:path*",
+    "/indicar/:path*",
     "/meus-anuncios/:path*",
     "/conversas/:path*",
     "/favoritos/:path*",

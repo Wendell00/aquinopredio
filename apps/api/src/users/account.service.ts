@@ -38,6 +38,9 @@ export class AccountService {
       ),
       favoritos: await q(`SELECT ad_id, created_at FROM favorites WHERE user_id = $1`),
       indicacoes: await q(`SELECT ad_id, created_at FROM ad_recommendations WHERE user_id = $1`),
+      indicacoes_de_prestadores: await q(
+        `SELECT service, provider_name, provider_phone, status, created_at FROM service_referrals WHERE author_id = $1`,
+      ),
       avaliacoes_feitas: await q(
         `SELECT reviewed_id, rating, comment, created_at, updated_at FROM user_reviews WHERE reviewer_id = $1`,
       ),
@@ -110,6 +113,8 @@ export class AccountService {
       // Avaliações escritas e indicações são dados pessoais de quem sai (RN-008).
       await manager.query(`DELETE FROM user_reviews WHERE reviewer_id = $1`, [user.id]);
       await manager.query(`DELETE FROM ad_recommendations WHERE user_id = $1`, [user.id]);
+      // Telefone de terceiro só fica no ar enquanto quem indicou tiver conta.
+      await manager.query(`DELETE FROM service_referrals WHERE author_id = $1`, [user.id]);
       await manager.query(
         `UPDATE users SET status = 'excluido', deleted_at = now(), name = 'Usuário removido', username = NULL,
            email = 'removido+' || id || '@invalid.local', email_verified = false, phone = NULL, image = NULL,

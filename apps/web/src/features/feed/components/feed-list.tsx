@@ -1,11 +1,10 @@
 "use client";
 
-import type { Category, FeedQuery, MyBuilding } from "@repo/shared";
+import type { Category, FeedQuery } from "@repo/shared";
 import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { Alert } from "@/components/ui/alert";
 import { buttonClasses } from "@/components/ui/button";
-import { Select } from "@/components/ui/input";
 import { useFeed } from "../hooks/use-feed";
 import { AdCard, AdCardSkeleton } from "./ad-card";
 import { FeedFilters, useFeedFilters } from "./feed-filters";
@@ -57,16 +56,8 @@ function EmptyFeed({ filtering }: { filtering: boolean }): React.JSX.Element {
   );
 }
 
-export function FeedList({
-  categories,
-  buildings,
-  primaryBuildingId,
-}: {
-  categories: Category[];
-  buildings: MyBuilding[];
-  primaryBuildingId: string | null;
-}): React.JSX.Element {
-  const [filters, setFilters] = useFeedFilters();
+export function FeedList({ categories }: { categories: Category[] }): React.JSX.Element {
+  const [filters] = useFeedFilters();
   const query = useMemo(() => toFeedQuery(filters), [filters]);
   const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useFeed(query);
@@ -88,31 +79,10 @@ export function FeedList({
 
   const items = data?.pages.flatMap((page) => page.items) ?? [];
   const notice = data?.pages[0]?.notice;
-  const activeBuildings = buildings.filter((item) => item.status === "ativo");
   const filtering = isFiltering(filters);
 
   return (
     <section className="flex flex-col gap-5" aria-label="Anúncios">
-      {activeBuildings.length > 1 && (
-        <div className="flex items-center gap-3">
-          <label htmlFor="feed-building" className="text-sm font-semibold">
-            Ver anúncios a partir de
-          </label>
-          <Select
-            id="feed-building"
-            className="max-w-64 min-h-10"
-            value={filters.predio ?? primaryBuildingId ?? ""}
-            onChange={(event) => void setFilters({ predio: event.target.value || null })}
-          >
-            {activeBuildings.map((item) => (
-              <option key={item.building.id} value={item.building.id}>
-                {item.building.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-      )}
-
       <FeedFilters categories={categories} />
 
       {notice && <Alert tone="info">{notice}</Alert>}

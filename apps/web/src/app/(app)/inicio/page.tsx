@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BuildingCreatedCelebration } from "@/features/buildings/components/building-created-celebration";
 import { BuildingHeader } from "@/features/buildings/components/building-header";
-import { FeedList } from "@/features/feed/components/feed-list";
+import { HomeTabs } from "@/features/feed/components/home-tabs";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import { serverGet } from "@/lib/api/server";
 import { getMe } from "@/lib/session/get-me";
@@ -34,7 +34,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
           </Link>
         </div>
       </div>
-      <FeedList
+      <HomeTabs
         categories={categories ?? []}
         buildings={list}
         primaryBuildingId={me?.primaryBuildingId ?? null}

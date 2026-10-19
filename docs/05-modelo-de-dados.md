@@ -117,7 +117,7 @@ erDiagram
 ### Demais
 - `favorites`: `user_id`, `ad_id` (único por par).
 - `user_blocks`: `blocker_id`, `blocked_id`.
-- `reports`: `reporter_id`, `target_type` (`ad`, `user`, `message`, `building`), `target_id`, `reason`, `details`, `status` (`aberta`, `procedente`, `improcedente`), `resolved_by`.
+- `reports`: `reporter_id`, `target_type` (`ad`, `user`, `message`, `building`, `referral`), `target_id`, `reason`, `details`, `status` (`aberta`, `procedente`, `improcedente`), `resolved_by`.
 - `sanctions`: `user_id`, `type` (`aviso`, `suspensao`, `banimento`), `reason`, `ends_at`, `appeal_status`.
 - `saved_searches`: `user_id`, `building_id`, `filters` (jsonb), `notify`.
 - `notifications`: `user_id`, `type`, `payload`, `read_at`.
@@ -162,6 +162,19 @@ ORDER BY (a.building_id = b.id) DESC,
 | Campo | Tipo | Observação |
 |-------|------|-----------|
 | ad_id, user_id | PK composta | uma indicação por pessoa por anúncio (RN-086) |
+| created_at | timestamptz | |
+
+### `service_referrals`
+| Campo | Tipo | Observação |
+|-------|------|-----------|
+| id | uuid | PK |
+| author_id | FK users | quem indicou |
+| building_id | FK buildings | prédio de onde a indicação parte (RN-089) |
+| service | text | o que a pessoa faz, 10–300 caracteres |
+| provider_name | text | nome do prestador, 2–60 caracteres |
+| provider_phone | text | E.164; único por prédio entre as ativas |
+| status | enum | `ativa`, `oculta` (denúncias), `removida` (admin) |
+| report_count | int | denunciantes distintos com denúncia aberta |
 | created_at | timestamptz | |
 
 ### `user_reviews`

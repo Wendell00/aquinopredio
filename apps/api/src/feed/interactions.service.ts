@@ -7,6 +7,7 @@ import {
 import type { BlockedUser, CreateReportInput } from "@repo/shared";
 import { createReportInputSchema } from "@repo/shared";
 import { DataSource } from "typeorm";
+import { ReferralsService } from "../referrals/referrals.service";
 import { SettingsService } from "../settings/settings.service";
 import type { User } from "../users/user.entity";
 import { FeedService } from "./feed.service";
@@ -17,6 +18,7 @@ export class InteractionsService {
     private readonly dataSource: DataSource,
     private readonly feed: FeedService,
     private readonly settings: SettingsService,
+    private readonly referrals: ReferralsService,
   ) {}
 
   /** RN-083: só favorita o que consegue ver. */
@@ -124,6 +126,20 @@ export class InteractionsService {
         [input.targetId, threshold],
       );
     }
+    if (input.targetType === "referral") {
+      // Mesmo limite dos anúncios (RN-093): a indicação some até o admin decidir.
+      const threshold = await this.settings.get("reports.autoHideThreshold");
+      await this.dataSource.query(
+        `WITH open AS (
+           SELECT count(DISTINCT reporter_id)::int AS count FROM reports
+           WHERE target_type = 'referral' AND target_id = $1 AND status = 'aberta')
+         UPDATE service_referrals SET
+           report_count = open.count,
+           status = CASE WHEN status = 'ativa' AND open.count >= $2 THEN 'oculta'::referral_status ELSE status END
+         FROM open WHERE id = $1`,
+        [input.targetId, threshold],
+      );
+    }
   }
 
   private async assertReportable(
@@ -140,6 +156,11 @@ export class InteractionsService {
       if (id === user.id) throw new BadRequestException("Você não pode denunciar a si mesmo");
       const [found] = await this.dataSource.query(`SELECT 1 FROM users WHERE id = $1`, [id]);
       if (!found) throw new NotFoundException("Usuário não encontrado");
+      return;
+    }
+    if (type === "referral") {
+      const { isMine } = await this.referrals.assertVisible(user, id);
+      if (isMine) throw new BadRequestException("Você não pode denunciar a própria indicação");
       return;
     }
     if (type === "building") {

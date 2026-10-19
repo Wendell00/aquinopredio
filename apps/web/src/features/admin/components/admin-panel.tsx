@@ -336,7 +336,9 @@ function ReportsQueue() {
                 ? "Pessoa"
                 : report.targetType === "message"
                   ? "Mensagem"
-                  : "Prédio"}
+                  : report.targetType === "referral"
+                    ? "Indicação de prestador"
+                    : "Prédio"}
             {report.sameTargetOpen > 1 && `, ${report.sameTargetOpen} denúncias sobre o mesmo item`}
           </p>
           <p className="font-semibold">

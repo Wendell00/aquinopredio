@@ -14,7 +14,7 @@ export function ReportDialog({
   targetId,
   trigger,
 }: {
-  targetType: "ad" | "user" | "message";
+  targetType: "ad" | "user" | "message" | "referral";
   targetId: string;
   trigger: (open: () => void) => React.ReactNode;
 }): React.JSX.Element {
@@ -54,7 +54,9 @@ export function ReportDialog({
               ? "Denunciar anúncio"
               : targetType === "user"
                 ? "Denunciar pessoa"
-                : "Denunciar mensagem"}
+                : targetType === "referral"
+                  ? "Denunciar indicação"
+                  : "Denunciar mensagem"}
           </h2>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 text-sm text-ink-soft">O que está errado?</legend>
