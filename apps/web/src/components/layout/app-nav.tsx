@@ -9,6 +9,7 @@ import {
   Plus,
   Shield,
   UserRound,
+  UserRoundPlus,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -54,15 +55,31 @@ export function AppNav({ role }: { role: UserRole }): React.JSX.Element {
         <Logo href="/inicio" />
       </div>
       {/* No trilho lateral "Anunciar" é a primeira opção; no celular ele fica no centro da barra.
-          Um link separado (em vez de reordenar com CSS) mantém a ordem de foco igual à visual. */}
-      <Link
-        href="/anunciar"
-        aria-current={isActive(pathname, "/anunciar") ? "page" : undefined}
-        className={cn(buttonClasses(), "mx-3 mt-8 hidden lg:flex")}
-      >
-        <Plus className="size-5" aria-hidden strokeWidth={2.4} />
-        Anunciar
-      </Link>
+          Um link separado (em vez de reordenar com CSS) mantém a ordem de foco igual à visual.
+          "Indicar" fica só no trilho: a barra do celular já está cheia e a aba de indicações
+          da tela inicial leva ao mesmo lugar. */}
+      <div className="mx-3 mt-8 hidden flex-col gap-1.5 lg:flex">
+        <Link
+          href="/anunciar"
+          aria-current={isActive(pathname, "/anunciar") ? "page" : undefined}
+          className={cn(buttonClasses("primary", "sm"), "rounded-xl shadow-none")}
+        >
+          <Plus className="size-4" aria-hidden strokeWidth={2.6} />
+          Anunciar
+        </Link>
+        <Link
+          href="/indicar"
+          aria-current={isActive(pathname, "/indicar") ? "page" : undefined}
+          className={cn(
+            buttonClasses("ghost", "sm"),
+            "min-h-9 rounded-xl font-semibold",
+            isActive(pathname, "/indicar") && "bg-brand-soft text-brand",
+          )}
+        >
+          <UserRoundPlus className="size-4" aria-hidden strokeWidth={2.2} />
+          Indicar alguém
+        </Link>
+      </div>
       <ul className="mx-auto flex max-w-[34rem] items-stretch justify-around lg:mt-4 lg:flex-col lg:justify-start lg:gap-1 lg:px-3">
         {items.map(({ href, label, icon: Icon, primary }) => {
           const active = isActive(pathname, href);
