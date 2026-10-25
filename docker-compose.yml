@@ -18,22 +18,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # Filas (BullMQ): validação de prédio e moderação
-  redis:
-    image: redis:7.4-alpine
-    container_name: aquinopredio-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   # Armazenamento de imagens compatível com S3 (SeaweedFS). Credenciais só de dev em infra/seaweedfs/s3.json;
   # leitura anônima apenas no bucket de imagens (objetos com nome aleatório).
   storage:
@@ -66,5 +50,4 @@ services:
 
 volumes:
   db-data:
-  redis-data:
   storage-data:

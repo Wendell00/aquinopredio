@@ -26,7 +26,7 @@ PWA para moradores divulgarem serviços e produtos no próprio prédio e nos pr�
 
 ```bash
 pnpm install
-pnpm db:up                                   # Postgres/PostGIS, Redis, SeaweedFS (S3) e Mailpit
+pnpm db:up                                   # Postgres/PostGIS, SeaweedFS (S3) e Mailpit
 cp apps/api/.env.example apps/api/.env       # gere BETTER_AUTH_SECRET: openssl rand -base64 32
 cp apps/web/.env.example apps/web/.env.local
 pnpm dev                                     # web http://localhost:3000 · api http://localhost:3001/api/health
@@ -65,7 +65,7 @@ Para criar o banco de testes na primeira vez: `docker exec aquinopredio-db psql 
 
 ```
 apps/web            Next.js 16 (App Router), Tailwind v4, TanStack Query, ky, nuqs, react-hook-form
-apps/api            NestJS 12, Better Auth, TypeORM + PostgreSQL/PostGIS, BullMQ, OpenRouter
+apps/api            NestJS 12, Better Auth, TypeORM + PostgreSQL/PostGIS, OpenRouter
 packages/shared     Schemas zod e regras compartilhadas entre web e api
 infra/              Configuração dos serviços locais
 .github/            CI (lint, tipos, testes, build, auditoria, e2e) e Dependabot

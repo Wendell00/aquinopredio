@@ -34,7 +34,6 @@ export const envSchema = z
           .filter(Boolean),
       ),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-    REDIS_URL: z.url({ protocol: /^rediss?$/ }).default("redis://localhost:6380"),
     THROTTLE_TTL_MS: z.coerce.number().int().positive().default(60_000),
     THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
 
@@ -112,12 +111,6 @@ export const envSchema = z
       z.string().regex(base64Url, "chave VAPID inválida").optional(),
     ),
     VAPID_SUBJECT: z.string().default("mailto:contato@aquinopredio.local"),
-
-    /** Roda filas e jobs agendados neste processo (desligue em réplicas só de HTTP). */
-    WORKERS_ENABLED: z
-      .enum(["true", "false"])
-      .default("true")
-      .transform((value) => value === "true"),
   })
   .superRefine((env, ctx) => {
     if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET)) {

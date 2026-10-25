@@ -4,7 +4,7 @@ import { DataSource } from "typeorm";
 import { NotificationsService } from "../notifications/notifications.service";
 import { SettingsService } from "../settings/settings.service";
 
-/** Jobs periódicos dos anúncios. Roda só onde WORKERS_ENABLED=true. */
+/** Jobs periódicos dos anúncios (expiração e aviso de expiração). */
 @Injectable()
 export class AdsScheduler {
   private readonly logger = new Logger(AdsScheduler.name);

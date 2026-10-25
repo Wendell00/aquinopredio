@@ -5,7 +5,6 @@ if (!process.env.CI) {
     "postgresql://aquinopredio:aquinopredio@localhost:5433/aquinopredio_test";
 }
 process.env.NODE_ENV = "test";
-process.env.WORKERS_ENABLED = "false";
 process.env.MODERATION_WITHOUT_AI = "approve";
 process.env.OPENROUTER_API_KEY = "";
 // Stripe nunca é chamado nos e2e: o gateway é substituído por `fakeStripe` quando preciso.

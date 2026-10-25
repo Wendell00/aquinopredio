@@ -3,7 +3,7 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { DataSource } from "typeorm";
 import { SettingsService } from "../../settings/settings.service";
 
-/** Manutenção periódica de prédios. Roda só onde WORKERS_ENABLED=true. */
+/** Manutenção periódica de prédios. */
 @Injectable()
 export class MaintenanceScheduler {
   private readonly logger = new Logger(MaintenanceScheduler.name);

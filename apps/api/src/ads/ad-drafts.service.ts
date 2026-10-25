@@ -1,14 +1,12 @@
 import {
   HttpException,
   HttpStatus,
-  Inject,
   Injectable,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { AdDraft, GenerateAdDraftInput, ImprovedText, ImproveTextInput } from "@repo/shared";
 import { generateAdDraftInputSchema, improveTextInputSchema } from "@repo/shared";
-import type { Redis } from "ioredis";
 import { Repository } from "typeorm";
 import { AiService, AiUnavailableError, delimit, type StructuredResult } from "../ai/ai.service";
 import {
@@ -20,7 +18,6 @@ import {
   adImproveOutputSchema,
   adImproveSystem,
 } from "../ai/prompts/ad-generation.prompt";
-import { REDIS } from "../redis/redis.module";
 import { SettingsService } from "../settings/settings.service";
 import { UploadsService } from "../uploads/uploads.service";
 import type { User } from "../users/user.entity";
@@ -30,13 +27,15 @@ const AI_UNAVAILABLE = "A IA está indisponível agora. Você pode criar o anún
 
 @Injectable()
 export class AdDraftsService {
+  // Contador por processo (RN-110). Perde força entre réplicas, mas o teto diário na DB fecha a conta.
+  private readonly inflight = new Map<string, number>();
+
   constructor(
     @InjectRepository(AiAdDraft) private readonly drafts: Repository<AiAdDraft>,
     @InjectRepository(Category) private readonly categories: Repository<Category>,
     private readonly ai: AiService,
     private readonly uploads: UploadsService,
     private readonly settings: SettingsService,
-    @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
   /** Gerações restantes hoje (RN-110). Gerar e melhorar contam no mesmo limite (RN-054). */
@@ -182,13 +181,14 @@ export class AdDraftsService {
    */
   private async reserveQuota(userId: string): Promise<() => Promise<void>> {
     if (!this.ai.enabled) throw new ServiceUnavailableException(AI_UNAVAILABLE);
-    const key = `ai:inflight:${userId}`;
-    const inflight = await this.redis.incr(key);
-    await this.redis.expire(key, 120);
+    const current = (this.inflight.get(userId) ?? 0) + 1;
+    this.inflight.set(userId, current);
     const release = async () => {
-      await this.redis.decr(key).catch(() => undefined);
+      const next = (this.inflight.get(userId) ?? 1) - 1;
+      if (next <= 0) this.inflight.delete(userId);
+      else this.inflight.set(userId, next);
     };
-    if ((await this.remainingToday(userId)) - inflight < 0) {
+    if ((await this.remainingToday(userId)) - current < 0) {
       await release();
       throw new HttpException(
         "Você usou todas as gerações com IA de hoje. Amanhã tem mais — ou crie o anúncio manualmente.",

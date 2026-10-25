@@ -77,14 +77,9 @@ jobs:
         ports:
           - 1025:1025
           - 8025:8025
-      redis:
-        image: redis:7.4-alpine
-        ports:
-          - 6379:6379
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://aquinopredio:aquinopredio@localhost:5432/aquinopredio
-      REDIS_URL: redis://localhost:6379
       SMTP_URL: smtp://localhost:1025
       MAILPIT_URL: http://localhost:8025
       # Segredo só de teste (o banco do CI é descartável).

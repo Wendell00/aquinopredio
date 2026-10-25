@@ -17,7 +17,7 @@ Guia de convenções para pessoas e agentes de IA que trabalham neste repositór
 ```bash
 nvm use                 # Node 24
 pnpm install
-pnpm db:up              # Postgres/PostGIS (5433), Redis (6380), SeaweedFS S3 (8333), Mailpit (8025)
+pnpm db:up              # Postgres/PostGIS (5433), SeaweedFS S3 (8333), Mailpit (8025)
 pnpm dev                # web :3000 + api :3001
 pnpm check              # Biome + typecheck + testes — rode antes de abrir PR
 pnpm lint:fix           # corrige lint/format
@@ -78,9 +78,9 @@ packages/
 ## Prédios, geolocalização e IA
 
 - Coordenadas em `geography(Point, 4326)` com índice GIST; consultas por raio em SQL (`ST_DWithin`/`ST_Distance`) via `dataSource.query`, parametrizadas.
-- Endereço: ViaCEP + Nominatim/Overpass (`GeoService`), com cache no Redis e 1 req/s ao Nominatim. Nos e2e, o `GeoService` é substituído por `test/support/fakes.ts` (sem rede).
+- Endereço: ViaCEP + Nominatim/Overpass (`GeoService`), com 1 req/s ao Nominatim. Nos e2e, o `GeoService` é substituído por `test/support/fakes.ts` (sem rede).
 - IA só pelo `AiService` (OpenRouter): saída JSON validada com zod (`z.strictObject`), conteúdo do usuário sempre dentro de `delimit()`, prompts versionados em `src/ai/prompts/`. Toda chamada é registrada em `ai_calls`. Sem chave/indisponível → `AiUnavailableError` e o fluxo aplica a RN-113.
-- Tarefas assíncronas em filas BullMQ; workers ficam em módulos carregados por `ConditionalModule` (`WORKERS_ENABLED`). A lógica fica num service testável; o processor só chama o service.
+- Moderação de anúncio e verificação de prédio rodam inline (fire-and-forget) nos services que recebem o request: a resposta HTTP não espera a IA/Overpass, e falhas transitórias caem na reavaliação manual pelo admin. Jobs periódicos ficam em `@Cron` (`AdsScheduler`, `MaintenanceScheduler`).
 - Valores `[configurável]`: `SettingsService` (`src/settings/settings.defaults.ts`).
 
 ## API (`apps/api`)

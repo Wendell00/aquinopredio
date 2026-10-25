@@ -11,7 +11,6 @@ describe("validateEnv", () => {
     expect(env.PORT).toBe(3001);
     expect(env.NODE_ENV).toBe("development");
     expect(env.WEB_ORIGIN).toBe("http://localhost:3000");
-    expect(env.WORKERS_ENABLED).toBe(true);
     expect(env.AUTH_CHECK_PWNED_PASSWORDS).toBe(false);
   });
 

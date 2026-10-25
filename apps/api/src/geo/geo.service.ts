@@ -1,12 +1,7 @@
-import { Inject, Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
+import { Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { CepLookup, GeocodeInput, GeocodeResult } from "@repo/shared";
-import type { Redis } from "ioredis";
 import type { Env } from "../config/env";
-import { cached } from "../redis/cache";
-import { REDIS } from "../redis/redis.module";
-
-const DAY = 60 * 60 * 24;
 
 export interface NearbyPlace {
   name: string | null;
@@ -37,7 +32,7 @@ interface NominatimItem {
 /**
  * ViaCEP (CEP → endereço) e OpenStreetMap: Nominatim (geocodificação) e Overpass (lugares próximos).
  * Respeita a política de uso do Nominatim: User-Agent identificado e no máximo 1 requisição/s
- * por processo; resultados ficam 30 dias em cache.
+ * por processo.
  */
 @Injectable()
 export class GeoService {
@@ -45,115 +40,93 @@ export class GeoService {
   private nominatimQueue: Promise<unknown> = Promise.resolve();
   private lastNominatimAt = 0;
 
-  constructor(
-    private readonly config: ConfigService<Env, true>,
-    @Inject(REDIS) private readonly redis: Redis,
-  ) {}
+  constructor(private readonly config: ConfigService<Env, true>) {}
 
-  lookupCep(cep: string): Promise<CepLookup | null> {
-    return cached(this.redis, `geo:cep:${cep}`, 30 * DAY, async () => {
-      const url = `${this.config.get("VIACEP_URL", { infer: true })}/${cep}/json/`;
-      const data = await this.fetchJson<Record<string, string | boolean>>(url);
-      if (!data || data.erro) return null;
-      return {
-        cep,
-        street: String(data.logradouro ?? ""),
-        district: String(data.bairro ?? ""),
-        city: String(data.localidade ?? ""),
-        state: String(data.uf ?? ""),
-      };
-    });
+  async lookupCep(cep: string): Promise<CepLookup | null> {
+    const url = `${this.config.get("VIACEP_URL", { infer: true })}/${cep}/json/`;
+    const data = await this.fetchJson<Record<string, string | boolean>>(url);
+    if (!data || data.erro) return null;
+    return {
+      cep,
+      street: String(data.logradouro ?? ""),
+      district: String(data.bairro ?? ""),
+      city: String(data.localidade ?? ""),
+      state: String(data.uf ?? ""),
+    };
   }
 
   /** Geocodifica com precisão decrescente: endereço com número → rua → CEP (RN-024). */
-  geocode(input: GeocodeInput): Promise<GeocodeResult | null> {
-    const key = `geo:geocode:${input.cep}:${input.number}:${input.street}`.toLowerCase();
-    return cached(this.redis, key, 30 * DAY, async () => {
-      const base = { city: input.city, state: input.state, country: "Brasil" };
-      const exact = await this.nominatimSearch({
-        ...base,
-        street: `${input.number} ${input.street}`,
-      });
-      if (exact) {
-        const hasNumber = Boolean(exact.address?.house_number);
-        return {
-          lat: Number(exact.lat),
-          lng: Number(exact.lon),
-          precision: hasNumber ? "exato" : "rua",
-        };
-      }
-      const street = await this.nominatimSearch({ ...base, street: input.street });
-      if (street) return { lat: Number(street.lat), lng: Number(street.lon), precision: "rua" };
-      const byCep = await this.nominatimSearch({ ...base, postalcode: input.cep });
-      if (byCep) return { lat: Number(byCep.lat), lng: Number(byCep.lon), precision: "cep" };
-      return null;
+  async geocode(input: GeocodeInput): Promise<GeocodeResult | null> {
+    const base = { city: input.city, state: input.state, country: "Brasil" };
+    const exact = await this.nominatimSearch({
+      ...base,
+      street: `${input.number} ${input.street}`,
     });
+    if (exact) {
+      const hasNumber = Boolean(exact.address?.house_number);
+      return {
+        lat: Number(exact.lat),
+        lng: Number(exact.lon),
+        precision: hasNumber ? "exato" : "rua",
+      };
+    }
+    const street = await this.nominatimSearch({ ...base, street: input.street });
+    if (street) return { lat: Number(street.lat), lng: Number(street.lon), precision: "rua" };
+    const byCep = await this.nominatimSearch({ ...base, postalcode: input.cep });
+    if (byCep) return { lat: Number(byCep.lat), lng: Number(byCep.lon), precision: "cep" };
+    return null;
   }
 
-  reverse(lat: number, lng: number): Promise<ReverseResult | null> {
-    return cached(
-      this.redis,
-      `geo:reverse:${lat.toFixed(5)}:${lng.toFixed(5)}`,
-      30 * DAY,
-      async () => {
-        const params = new URLSearchParams({
-          lat: String(lat),
-          lon: String(lng),
-          format: "jsonv2",
-          addressdetails: "1",
-          zoom: "18",
-        });
-        const item = await this.nominatim<NominatimItem>(`/reverse?${params}`);
-        if (!item) return null;
-        return {
-          category: item.category ?? "",
-          type: item.type ?? "",
-          addressType: item.addresstype ?? null,
-          houseNumber: item.address?.house_number ?? null,
-          road: item.address?.road ?? null,
-          postcode: item.address?.postcode?.replace(/\D/g, "") ?? null,
-          displayName: item.display_name,
-        };
-      },
-    );
+  async reverse(lat: number, lng: number): Promise<ReverseResult | null> {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lng),
+      format: "jsonv2",
+      addressdetails: "1",
+      zoom: "18",
+    });
+    const item = await this.nominatim<NominatimItem>(`/reverse?${params}`);
+    if (!item) return null;
+    return {
+      category: item.category ?? "",
+      type: item.type ?? "",
+      addressType: item.addresstype ?? null,
+      houseNumber: item.address?.house_number ?? null,
+      road: item.address?.road ?? null,
+      postcode: item.address?.postcode?.replace(/\D/g, "") ?? null,
+      displayName: item.display_name,
+    };
   }
 
   /** Construções e áreas residenciais num raio (evidência objetiva para a validação de prédio). */
-  nearbyPlaces(lat: number, lng: number, radiusM = 80): Promise<NearbyPlace[]> {
-    return cached(
-      this.redis,
-      `geo:nearby:${lat.toFixed(5)}:${lng.toFixed(5)}:${radiusM}`,
-      30 * DAY,
-      async () => {
-        const around = `(around:${radiusM},${lat},${lng})`;
-        // Consulta enxuta: o servidor público do Overpass costuma recusar (504) consultas pesadas.
-        const query = `[out:json][timeout:20];(way["building"]${around};way["landuse"="residential"]${around};nwr["name"]["building"]${around};);out center tags 30;`;
-        const response = await this.fetchJson<{
-          elements: {
-            lat?: number;
-            lon?: number;
-            center?: { lat: number; lon: number };
-            tags?: Record<string, string>;
-          }[];
-        }>(this.config.get("OVERPASS_URL", { infer: true }), {
-          method: "POST",
-          body: new URLSearchParams({ data: query }),
-        });
-        return (response?.elements ?? []).map((element) => {
-          const point = element.center ?? { lat: element.lat ?? lat, lon: element.lon ?? lng };
-          const tags = element.tags ?? {};
-          return {
-            name: tags.name ?? null,
-            kind: tags.building
-              ? `building=${tags.building}`
-              : tags.landuse
-                ? `landuse=${tags.landuse}`
-                : (tags.amenity ?? tags.shop ?? "outro"),
-            distanceM: Math.round(haversineM(lat, lng, point.lat, point.lon)),
-          };
-        });
-      },
-    );
+  async nearbyPlaces(lat: number, lng: number, radiusM = 80): Promise<NearbyPlace[]> {
+    const around = `(around:${radiusM},${lat},${lng})`;
+    // Consulta enxuta: o servidor público do Overpass costuma recusar (504) consultas pesadas.
+    const query = `[out:json][timeout:20];(way["building"]${around};way["landuse"="residential"]${around};nwr["name"]["building"]${around};);out center tags 30;`;
+    const response = await this.fetchJson<{
+      elements: {
+        lat?: number;
+        lon?: number;
+        center?: { lat: number; lon: number };
+        tags?: Record<string, string>;
+      }[];
+    }>(this.config.get("OVERPASS_URL", { infer: true }), {
+      method: "POST",
+      body: new URLSearchParams({ data: query }),
+    });
+    return (response?.elements ?? []).map((element) => {
+      const point = element.center ?? { lat: element.lat ?? lat, lon: element.lon ?? lng };
+      const tags = element.tags ?? {};
+      return {
+        name: tags.name ?? null,
+        kind: tags.building
+          ? `building=${tags.building}`
+          : tags.landuse
+            ? `landuse=${tags.landuse}`
+            : (tags.amenity ?? tags.shop ?? "outro"),
+        distanceM: Math.round(haversineM(lat, lng, point.lat, point.lon)),
+      };
+    });
   }
 
   private nominatimSearch(params: Record<string, string>): Promise<NominatimItem | null> {

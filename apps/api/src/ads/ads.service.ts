@@ -1,9 +1,9 @@
-import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -19,7 +19,6 @@ import {
   type UpdateAdInput,
   updateAdInputSchema,
 } from "@repo/shared";
-import type { Queue } from "bullmq";
 import { DataSource, In, Not, Repository } from "typeorm";
 import { AiService } from "../ai/ai.service";
 import { PlansService } from "../billing/plans.service";
@@ -28,7 +27,7 @@ import { UploadsService } from "../uploads/uploads.service";
 import type { User } from "../users/user.entity";
 import { Ad, AdImage, Category } from "./ad.entity";
 import { AdDraftsService } from "./ad-drafts.service";
-import { AD_MODERATION_QUEUE, type AdModerationJob } from "./moderation/moderation.queue";
+import { AdModerationService } from "./moderation/ad-moderation.service";
 
 /** Estados que ocupam vaga no limite de anúncios ativos (RN-065). */
 const COUNTS_AS_ACTIVE: AdStatus[] = ["ativo", "em_moderacao"];
@@ -44,6 +43,8 @@ interface PublishContext {
 
 @Injectable()
 export class AdsService {
+  private readonly logger = new Logger(AdsService.name);
+
   constructor(
     @InjectRepository(Ad) private readonly ads: Repository<Ad>,
     @InjectRepository(Category) private readonly categories: Repository<Category>,
@@ -53,7 +54,7 @@ export class AdsService {
     private readonly drafts: AdDraftsService,
     private readonly ai: AiService,
     private readonly plans: PlansService,
-    @InjectQueue(AD_MODERATION_QUEUE) private readonly moderationQueue: Queue<AdModerationJob>,
+    private readonly moderation: AdModerationService,
   ) {}
 
   listCategories(): Promise<Category[]> {
@@ -469,11 +470,11 @@ export class AdsService {
   }
 
   private async enqueueModeration(adId: string): Promise<void> {
-    await this.moderationQueue.add(
-      "moderate",
-      { adId },
-      { attempts: 3, backoff: { type: "exponential", delay: 15_000 }, removeOnComplete: 1000 },
-    );
+    // Fire-and-forget: a resposta HTTP não espera a moderação terminar.
+    // Falhas transitórias caem no fluxo manual (admin pode reavaliar).
+    void this.moderation.moderate(adId).catch((err) => {
+      this.logger.error(`Moderação falhou para anúncio ${adId}: ${err?.message ?? err}`);
+    });
   }
 
   private async canBumpAt(

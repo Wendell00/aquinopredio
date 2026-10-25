@@ -1,9 +1,9 @@
-import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -16,16 +16,14 @@ import type {
   MyBuilding,
   ResubmitBuildingInput,
 } from "@repo/shared";
-import type { Queue } from "bullmq";
 import { DataSource, In, Repository } from "typeorm";
 import { SettingsService } from "../settings/settings.service";
 import type { User } from "../users/user.entity";
 import { UsersService } from "../users/users.service";
 import { Building, BuildingMembership } from "./building.entity";
-import {
-  BUILDING_VERIFICATION_QUEUE,
-  type BuildingVerificationJob,
-} from "./verification/verification.queue";
+import { BuildingVerificationService } from "./verification/building-verification.service";
+
+type VerificationReason = "criacao" | "reenvio" | "edicao";
 
 /**
  * Prédios que aparecem na busca e aceitam novos moradores (RN-021). Inclui os que ainda estão
@@ -49,6 +47,8 @@ interface SummaryRow {
 
 @Injectable()
 export class BuildingsService {
+  private readonly logger = new Logger(BuildingsService.name);
+
   constructor(
     @InjectRepository(Building) private readonly buildings: Repository<Building>,
     @InjectRepository(BuildingMembership)
@@ -56,8 +56,7 @@ export class BuildingsService {
     private readonly dataSource: DataSource,
     private readonly settings: SettingsService,
     private readonly users: UsersService,
-    @InjectQueue(BUILDING_VERIFICATION_QUEUE)
-    private readonly verificationQueue: Queue<BuildingVerificationJob>,
+    private readonly verification: BuildingVerificationService,
   ) {}
 
   /** Busca por nome (sem acento, tolerante a erro de digitação), CEP ou proximidade (RN-020). */
@@ -294,18 +293,13 @@ export class BuildingsService {
 
   private async enqueueVerification(
     buildingId: string,
-    reason: BuildingVerificationJob["reason"],
+    _reason: VerificationReason,
   ): Promise<void> {
-    await this.verificationQueue.add(
-      "verify",
-      { buildingId, reason },
-      {
-        jobId: `${buildingId}-${Date.now()}`,
-        attempts: 3,
-        backoff: { type: "exponential", delay: 30_000 },
-        removeOnComplete: 1000,
-      },
-    );
+    // Fire-and-forget: a resposta HTTP não espera o Overpass/Nominatim.
+    // Sem retries — falhas transitórias ficam para reavaliação manual pelo admin.
+    void this.verification.verify(buildingId, { requireEvidence: false }).catch((err) => {
+      this.logger.error(`Verificação falhou para prédio ${buildingId}: ${err?.message ?? err}`);
+    });
   }
 
   private async residentCounts(buildingIds: string[]): Promise<Map<string, number>> {

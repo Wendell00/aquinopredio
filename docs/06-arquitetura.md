@@ -11,7 +11,6 @@
 | Backend API | NestJS 12 (REST), validação com Zod (`ZodValidationPipe`), helmet, rate limit | `apps/api` |
 | Tipos/contratos compartilhados | Schemas zod, enums (status, categorias) e constantes de regra | `packages/shared` |
 | Banco | PostgreSQL + PostGIS, ORM TypeORM (migrations fora de dev) | `apps/api` |
-| Filas / cache | Redis + BullMQ (validação de prédio, moderação) e cache de geocodificação | `apps/api` |
 | Armazenamento de imagens | S3 compatível (SeaweedFS em dev; S3/R2 em produção) + CDN. Upload passa pela API, que reprocessa a imagem (WebP, sem EXIF) | `apps/api/src/uploads` |
 | IA | OpenRouter (API compatível com OpenAI; SDK `openai` com `baseURL` do OpenRouter) | `apps/api/src/ai` |
 | Geolocalização | ViaCEP + Nominatim/Overpass (OpenStreetMap), mapa com Leaflet | `apps/api/src/geo` |
@@ -36,7 +35,6 @@ Modelo em `apps/api/.env.example` (copiar para `apps/api/.env` e preencher). O `
 | Variável | Descrição |
 |----------|-----------|
 | `DATABASE_URL` | Conexão PostgreSQL + PostGIS (a mesma usada no Beekeeper Studio) |
-| `REDIS_URL` | Filas (BullMQ) e cache de geocodificação |
 | `APP_URL` / `WEB_ORIGIN` / `TRUSTED_PROXIES` | Origem pública do app, origens aceitas (CSRF/CORS) e proxies confiáveis (IP real no rate limit) |
 | `BETTER_AUTH_SECRET` | Segredo das sessões (mínimo 32 caracteres) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login com Google (opcional) |
@@ -47,7 +45,6 @@ Modelo em `apps/api/.env.example` (copiar para `apps/api/.env` e preencher). O `
 | `OPENROUTER_API_KEY` / `OPENROUTER_MODEL_*` | IA (ver [Integração com IA](./04-integracao-ia.md)) |
 | `MODERATION_WITHOUT_AI` | `review` (padrão) ou `approve` (só dev) quando não há IA |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push (`pnpm --filter api exec web-push generate-vapid-keys`) |
-| `WORKERS_ENABLED` | Liga filas e jobs agendados no processo (desligue em réplicas só de HTTP) |
 
 A lista completa, com padrões, está em `apps/api/src/config/env.ts`; a API não sobe com variável inválida.
 

@@ -109,4 +109,4 @@ Objetivo: estimar se existe de fato um prédio residencial/condomínio no endere
 - Registrar por chamada: tipo, usuário, tokens de entrada/saída, latência, custo estimado, versão do prompt.
 - Prompts versionados no repositório (`apps/api/src/ai/prompts/`), com testes de regressão usando exemplos reais anonimizados.
 - Cache de resultados de geocodificação/Places por endereço normalizado.
-- Chamadas de validação de prédio e moderação rodam em **fila assíncrona** (ex.: BullMQ + Redis); a geração de anúncio é síncrona (usuário aguardando, com indicador de progresso e timeout de ~30 s).
+- Validação de prédio e moderação rodam inline no service que recebe o request (fire-and-forget, sem bloquear a resposta HTTP); falhas transitórias caem na reavaliação manual pelo admin. A geração de anúncio é síncrona (usuário aguardando, com indicador de progresso e timeout de ~30 s).

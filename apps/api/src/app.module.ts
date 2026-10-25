@@ -1,4 +1,3 @@
-import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
@@ -22,7 +21,6 @@ import { GeoModule } from "./geo/geo.module";
 import { MailModule } from "./mail/mail.module";
 import { HealthModule } from "./modules/health/health.module";
 import { NotificationsModule } from "./notifications/notifications.module";
-import { RedisModule } from "./redis/redis.module";
 import { ReferralsModule } from "./referrals/referrals.module";
 import { ReviewsModule } from "./reviews/reviews.module";
 import { SettingsModule } from "./settings/settings.module";
@@ -45,16 +43,7 @@ import { UsersModule } from "./users/users.module";
       }),
     }),
     TypeOrmModule.forRootAsync(databaseConfig),
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<Env, true>) => ({
-        // BullMQ exige maxRetriesPerRequest: null nas conexões dos workers.
-        connection: { url: config.get("REDIS_URL", { infer: true }), maxRetriesPerRequest: null },
-        prefix: "anp",
-      }),
-    }),
     ScheduleModule.forRoot(),
-    RedisModule,
     StorageModule,
     UploadsModule,
     SettingsModule,
