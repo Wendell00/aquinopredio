@@ -14,6 +14,7 @@ import { unreadKey } from "@/features/notifications/hooks/use-unread";
 import { ApiError } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { getConversation, markConversationRead, sendMessage } from "../api/chat-api";
+import { useRealtimeConnected } from "../hooks/use-realtime-connected";
 import { PushPrompt } from "./push-prompt";
 
 const dayLabel = (iso: string) => {
@@ -97,13 +98,15 @@ export function ChatThread({
   config: PublicConfig;
 }): React.JSX.Element {
   const queryClient = useQueryClient();
+  const realtime = useRealtimeConnected();
   const key = ["conversations", initial.id];
   const { data } = useQuery({
     queryKey: key,
     queryFn: () => getConversation(initial.id),
     initialData: initial,
-    // Polling enquanto a conversa está aberta (o push avisa quando o app está fechado).
-    refetchInterval: 4_000,
+    // Com o Supabase Realtime conectado, o aviso dispara o refetch e o polling vira rede de segurança;
+    // sem ele, polling curto enquanto a conversa está aberta (o push avisa com o app fechado).
+    refetchInterval: realtime ? 60_000 : 4_000,
     refetchIntervalInBackground: false,
   });
   const [text, setText] = useState("");

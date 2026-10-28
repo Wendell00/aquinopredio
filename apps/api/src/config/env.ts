@@ -103,6 +103,12 @@ export const envSchema = z
      */
     MODERATION_WITHOUT_AI: z.enum(["review", "approve"]).default("review"),
 
+    // Chat em tempo real (Supabase Realtime, Broadcast). Sem as duas, o chat segue só com polling.
+    /** URL do projeto (`https://<ref>.supabase.co`). */
+    SUPABASE_URL: optionalString.pipe(z.url().optional()),
+    /** Chave secreta (`sb_secret_…`): publica os avisos e assina os nomes dos canais. Só no backend. */
+    SUPABASE_SECRET_KEY: optionalString,
+
     // Web Push
     VAPID_PUBLIC_KEY: optionalString.pipe(
       z.string().regex(base64Url, "chave VAPID inválida").optional(),
@@ -134,6 +140,13 @@ export const envSchema = z
         path: ["STRIPE_SECRET_KEY"],
         message:
           "STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET e STRIPE_PRICE_PRO devem ser definidos juntos",
+      });
+    }
+    if (Boolean(env.SUPABASE_URL) !== Boolean(env.SUPABASE_SECRET_KEY)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["SUPABASE_SECRET_KEY"],
+        message: "SUPABASE_URL e SUPABASE_SECRET_KEY devem ser definidos juntos",
       });
     }
     if (env.NODE_ENV === "production" && env.MODERATION_WITHOUT_AI === "approve") {

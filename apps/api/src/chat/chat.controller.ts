@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import {
+  type ChatRealtime,
   type ConversationDetail,
   type ConversationSummary,
   type Message,
@@ -12,10 +13,20 @@ import { CurrentUser } from "../common/decorators/auth.decorators";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 import type { User } from "../users/user.entity";
 import { ChatService } from "./chat.service";
+import { ChatRealtimeService } from "./chat-realtime.service";
 
 @Controller()
 export class ChatController {
-  constructor(private readonly chat: ChatService) {}
+  constructor(
+    private readonly chat: ChatService,
+    private readonly realtime: ChatRealtimeService,
+  ) {}
+
+  /** Canal do Supabase Realtime do usuário logado (avisos sem conteúdo; ver ChatRealtimeService). */
+  @Get("chat/realtime")
+  realtimeTopic(@CurrentUser() user: User): ChatRealtime {
+    return { topic: this.realtime.topicFor(user.id) };
+  }
 
   @Post("ads/:id/conversations")
   start(

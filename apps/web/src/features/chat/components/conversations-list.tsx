@@ -8,14 +8,16 @@ import { Alert } from "@/components/ui/alert";
 import { cn } from "@/lib/cn";
 import { timeAgo } from "@/lib/format";
 import { getConversations } from "../api/chat-api";
+import { useRealtimeConnected } from "../hooks/use-realtime-connected";
 
 export const conversationsKey = ["conversations"] as const;
 
 export function ConversationsList(): React.JSX.Element {
+  const realtime = useRealtimeConnected();
   const { data, isPending, isError } = useQuery({
     queryKey: conversationsKey,
     queryFn: getConversations,
-    refetchInterval: 15_000,
+    refetchInterval: realtime ? 60_000 : 15_000,
   });
 
   if (isPending) {

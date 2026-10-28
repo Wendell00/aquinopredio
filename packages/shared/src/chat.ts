@@ -63,6 +63,18 @@ export const messagesQuerySchema = z.object({
   before: z.iso.datetime().optional(),
 });
 
+/**
+ * Canal do Supabase Realtime do usuário. `topic` é derivado de um segredo do servidor (não dá para
+ * adivinhar o de outra pessoa) e só recebe avisos sem conteúdo; os dados vêm sempre da API.
+ * `null` quando o Realtime não está configurado — o front segue só com polling.
+ */
+export const chatRealtimeSchema = z.object({ topic: z.string().nullable() });
+export type ChatRealtime = z.infer<typeof chatRealtimeSchema>;
+
+/** Evento enviado no canal do usuário quando uma conversa dele muda (nova mensagem, leitura). */
+export const CHAT_REALTIME_EVENT = "conversation";
+export const chatRealtimePayloadSchema = z.object({ conversationId: z.uuid() });
+
 export const notificationSchema = z.object({
   id: z.uuid(),
   type: z.string(),

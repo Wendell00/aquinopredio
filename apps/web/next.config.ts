@@ -6,6 +6,10 @@ const apiInternalUrl = process.env.API_INTERNAL_URL ?? "http://localhost:3001";
 /** Origem pública das imagens (S3/CDN). */
 const storagePublicUrl = process.env.NEXT_PUBLIC_STORAGE_URL ?? "http://localhost:8333";
 const mapTiles = "https://tile.openstreetmap.org";
+/** Supabase Realtime (chat): WebSocket direto do navegador. Vazio = chat só com polling. */
+const supabaseRealtime = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? ` ${new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin.replace(/^http/, "ws")}`
+  : "";
 
 /**
  * CSP sem nonce para manter páginas estáticas. Scripts inline do Next exigem 'unsafe-inline';
@@ -18,7 +22,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' blob: data: ${new URL(storagePublicUrl).origin} ${mapTiles} https://lh3.googleusercontent.com`,
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  `connect-src 'self'${supabaseRealtime}${isDev ? " ws:" : ""}`,
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-ancestors 'none'",

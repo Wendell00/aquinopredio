@@ -45,16 +45,17 @@ Modelo em `apps/api/.env.example` (copiar para `apps/api/.env` e preencher). O `
 | `OPENROUTER_API_KEY` / `OPENROUTER_MODEL_*` | IA (ver [Integração com IA](./04-integracao-ia.md)) |
 | `MODERATION_WITHOUT_AI` | `review` (padrão) ou `approve` (só dev) quando não há IA |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push (`pnpm --filter api exec web-push generate-vapid-keys`) |
+| `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | Chat em tempo real (Supabase Realtime, opcional) |
 
 A lista completa, com padrões, está em `apps/api/src/config/env.ts`; a API não sobe com variável inválida.
 
-No `apps/web`: `API_INTERNAL_URL` (só no servidor, destino do proxy `/api`) e `NEXT_PUBLIC_STORAGE_URL` (origem pública das imagens). Nenhuma chave secreta vai para o navegador.
+No `apps/web`: `API_INTERNAL_URL` (só no servidor, destino do proxy `/api`), `NEXT_PUBLIC_STORAGE_URL` (origem pública das imagens) e, para o chat em tempo real, `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (públicas; a URL entra na CSP). Nenhuma chave secreta vai para o navegador.
 
 ## 6.3.1 Decisões de implementação do MVP
 
 | Tema | Decisão | Motivo |
 |------|---------|--------|
-| Chat | Polling (4 s com a conversa aberta, 15 s na lista) + Web Push | Simples, funciona atrás do proxy do Next e em qualquer hospedagem; trocar por SSE/WebSocket quando o volume pedir |
+| Chat | Supabase Realtime (Broadcast) + polling de segurança (60 s) + Web Push. Sem Supabase configurado, polling de 4 s (conversa) / 15 s (lista) | O banco segue sendo o nosso: a API publica no canal do usuário (nome = HMAC do id com a chave secreta) só o id da conversa, e o front refaz a busca pela API, que mantém a autorização (RNF-012) |
 | Upload | Multipart para a API, reprocessado com `sharp` | Garante remoção de EXIF/GPS e formato real no servidor (RNF-013, RN-132) sem depender do cliente |
 | Visibilidade | Uma única expressão SQL (RN-058) reutilizada no feed, detalhe e favoritos | Evita divergência entre telas; pré-filtro por raio máximo usa o índice GIST |
 | Distâncias | Arredondadas a 50 m nas respostas | Não revelar a posição exata de outro prédio (RN-034) |

@@ -1,6 +1,8 @@
 import {
+  type ChatRealtime,
   type ConversationDetail,
   type ConversationSummary,
+  chatRealtimeSchema,
   conversationDetailSchema,
   conversationSummarySchema,
   type Message,
@@ -38,4 +40,8 @@ export async function sendMessage(id: string, input: SendMessageInput): Promise<
 
 export async function markConversationRead(id: string): Promise<void> {
   await api.post(`conversations/${id}/read`);
+}
+
+export async function getChatRealtime(): Promise<ChatRealtime> {
+  return chatRealtimeSchema.parse(await api.get("chat/realtime").json());
 }

@@ -38,6 +38,12 @@ describe("validateEnv", () => {
     expect(() => validateEnv({ ...base, GOOGLE_CLIENT_ID: "id" })).toThrow(/definidos juntos/);
   });
 
+  it("exige URL e chave secreta do Supabase juntas", () => {
+    expect(() => validateEnv({ ...base, SUPABASE_URL: "https://abc.supabase.co" })).toThrow(
+      /SUPABASE_URL e SUPABASE_SECRET_KEY/,
+    );
+  });
+
   it("recusa chave VAPID malformada", () => {
     expect(() => validateEnv({ ...base, VAPID_PUBLIC_KEY: "abc def" })).toThrow(/VAPID/);
   });

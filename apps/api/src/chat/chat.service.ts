@@ -21,6 +21,7 @@ import { SettingsService } from "../settings/settings.service";
 import { StorageService } from "../storage/storage.service";
 import { UploadsService } from "../uploads/uploads.service";
 import type { User } from "../users/user.entity";
+import { ChatRealtimeService } from "./chat-realtime.service";
 
 const PAGE = 50;
 
@@ -57,6 +58,7 @@ export class ChatService {
     private readonly storage: StorageService,
     private readonly uploads: UploadsService,
     private readonly notifications: NotificationsService,
+    private readonly realtime: ChatRealtimeService,
   ) {}
 
   /** Abre (ou reabre) a conversa do interessado sobre um anúncio (RN-080). */
@@ -200,6 +202,8 @@ export class ChatService {
 
     const recipient =
       conversation.buyer_id === user.id ? conversation.seller_id : conversation.buyer_id;
+    // O remetente também recebe: atualiza as outras abas/aparelhos dele.
+    this.realtime.notify([recipient, user.id], conversationId);
     void this.notifications.notify(recipient, {
       type: "nova_mensagem",
       title: `${user.name} sobre “${conversation.ad_title}”`,
@@ -223,10 +227,14 @@ export class ChatService {
   async markRead(user: User, conversationId: string): Promise<void> {
     const [conversation] = await this.query(user.id, conversationId);
     if (!conversation) throw new NotFoundException("Conversa não encontrada");
-    await this.dataSource.query(
+    const [, affected]: [unknown, number] = await this.dataSource.query(
       `UPDATE messages SET read_at = now() WHERE conversation_id = $1 AND sender_id IS DISTINCT FROM $2 AND read_at IS NULL`,
       [conversationId, user.id],
     );
+    // Só avisa quando algo mudou: o front marca como lida a cada mensagem recebida.
+    if (affected > 0) {
+      this.realtime.notify([conversation.buyer_id, conversation.seller_id], conversationId);
+    }
   }
 
   private async isBlocked(a: string, b: string): Promise<boolean> {
