@@ -5,3 +5,10 @@ allowBuilds:
   '@parcel/watcher': false
   msgpackr-extract: false
   unrs-resolver: false
+# Correções de segurança em dependências transitivas cujo pacote pai ainda fixa a versão vulnerável.
+# Remover quando o pai atualizar (pnpm audit --prod).
+overrides:
+  body-parser@>=2.0.0 <2.4.0: 2.4.0
+  multer@>=2.0.0 <2.5.0: 2.5.0
+  undici@>=8.0.0 <8.12.2: 8.12.2
+  zod@>=4.0.0 <4.6.6: 4.6.6
