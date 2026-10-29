@@ -2,8 +2,8 @@
 
 PWA para moradores divulgarem serviços e produtos no próprio prédio e nos prédios vizinhos (por raio em km), com anúncios escritos por IA a partir de texto livre e fotos.
 
-- Produto, regras de negócio (RN-xxx) e arquitetura: [`docs/`](./docs/README.md)
-- Convenções de código, estrutura e segurança: [`AGENTS.md`](./AGENTS.md)
+- Produto, regras de negócio (RN-xxx) e arquitetura [`docs/`](./docs/README.md)
+- Convenções de código, estrutura e segurança [`AGENTS.md`](./AGENTS.md)
 
 ## O que já funciona
 
