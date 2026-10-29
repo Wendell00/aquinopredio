@@ -2,7 +2,7 @@
 
 import type { ConversationDetail, Message, PublicConfig } from "@repo/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeft, Flag, ImagePlus, Loader2, SendHorizontal } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Flag, ImagePlus, SendHorizontal, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import { ApiError } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { getConversation, markConversationRead, sendMessage } from "../api/chat-api";
 import { useRealtimeConnected } from "../hooks/use-realtime-connected";
+import { ImageViewer } from "./image-viewer";
 import { PushPrompt } from "./push-prompt";
 
 const dayLabel = (iso: string) => {
@@ -39,22 +40,7 @@ function Bubble({ message }: { message: Message }): React.JSX.Element {
             : "rounded-bl-md border border-line bg-white text-ink",
         )}
       >
-        {message.image && (
-          <a
-            href={message.image.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-1 block"
-          >
-            <Image
-              src={message.image.thumbUrl}
-              alt="Foto enviada na conversa"
-              width={220}
-              height={220}
-              className="h-auto max-h-56 w-56 rounded-xl object-cover"
-            />
-          </a>
-        )}
+        {message.image && <ImageViewer image={message.image} />}
         {message.body && <p className="whitespace-pre-wrap break-words">{message.body}</p>}
       </div>
       {!message.mine && (message.hasLink || message.flagged) && (
@@ -111,7 +97,7 @@ export function ChatThread({
   });
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [attachment, setAttachment] = useState<{ file: File; preview: string } | null>(null);
   const [sentOnce, setSentOnce] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -124,6 +110,12 @@ export function ChatThread({
       queryClient.invalidateQueries({ queryKey: unreadKey }),
     );
   }, [lastIncoming, initial.id, queryClient]);
+
+  // Libera a URL da prévia quando o anexo é trocado, removido ou enviado.
+  useEffect(() => {
+    if (!attachment) return;
+    return () => URL.revokeObjectURL(attachment.preview);
+  }, [attachment]);
 
   const count = data.messages.length;
   useEffect(() => {
@@ -171,26 +163,34 @@ export function ChatThread({
   async function submit(event?: React.FormEvent): Promise<void> {
     event?.preventDefault();
     const body = text.trim();
-    if (!body || sending) return;
+    if ((!body && !attachment) || sending) return;
     setSending(true);
-    setText("");
-    await send({ body });
-    setSending(false);
+    try {
+      let imageId: string | undefined;
+      if (attachment) {
+        try {
+          imageId = (await uploadAdImage(attachment.file, "chat")).id;
+        } catch (error) {
+          // Mantém texto e anexo para a pessoa tentar de novo.
+          toast.error(
+            error instanceof ApiError ? error.message : "Não foi possível enviar a foto.",
+          );
+          return;
+        }
+        setAttachment(null);
+      }
+      setText("");
+      await send({ body: body || undefined, imageId });
+    } finally {
+      setSending(false);
+    }
   }
 
-  async function attach(files: FileList | null): Promise<void> {
+  function attach(files: FileList | null): void {
     const file = files?.[0];
+    if (fileInput.current) fileInput.current.value = "";
     if (!file) return;
-    setUploading(true);
-    try {
-      const image = await uploadAdImage(file, "chat");
-      await send({ imageId: image.id });
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Não foi possível enviar a foto.");
-    } finally {
-      setUploading(false);
-      if (fileInput.current) fileInput.current.value = "";
-    }
+    setAttachment({ file, preview: URL.createObjectURL(file) });
   }
 
   let lastDay = "";
@@ -256,53 +256,69 @@ export function ChatThread({
           Esta conversa foi encerrada.
         </p>
       ) : (
-        <form
-          onSubmit={submit}
-          className="flex items-end gap-2 border-t border-line bg-cream px-3 py-3"
-        >
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            id="chat-photo"
-            onChange={(event) => void attach(event.target.files)}
-          />
-          <label
-            htmlFor="chat-photo"
-            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-ink-soft hover:bg-sand"
-            aria-label="Enviar foto"
-          >
-            {uploading ? (
-              <Loader2 className="size-5 animate-spin" aria-hidden />
-            ) : (
+        <form onSubmit={submit} className="border-t border-line bg-cream px-3 py-3">
+          {attachment && (
+            <div className="relative mb-2 ml-13 w-fit">
+              {/* biome-ignore lint/performance/noImgElement: prévia local (blob:) antes do upload */}
+              <img
+                src={attachment.preview}
+                alt="Foto anexada"
+                className={cn("size-24 rounded-xl object-cover", sending && "opacity-60")}
+              />
+              {!sending && (
+                <button
+                  type="button"
+                  onClick={() => setAttachment(null)}
+                  className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-ink text-white hover:bg-ink-soft"
+                  aria-label="Remover foto anexada"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              )}
+            </div>
+          )}
+          <div className="flex items-end gap-2">
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              id="chat-photo"
+              disabled={sending}
+              onChange={(event) => attach(event.target.files)}
+            />
+            <label
+              htmlFor="chat-photo"
+              className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-ink-soft hover:bg-sand has-disabled:cursor-not-allowed has-disabled:opacity-50"
+              aria-label={attachment ? "Trocar foto anexada" : "Anexar foto"}
+            >
               <ImagePlus className="size-5" aria-hidden />
-            )}
-          </label>
-          <label htmlFor="chat-input" className="sr-only">
-            Mensagem
-          </label>
-          <textarea
-            id="chat-input"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) void submit(event);
-            }}
-            rows={1}
-            maxLength={2000}
-            placeholder="Escreva uma mensagem"
-            className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-edge bg-white px-4 py-2.5 text-[0.95rem] focus:border-brand focus:outline-none [field-sizing:content]"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!text.trim()}
-            loading={sending}
-            aria-label="Enviar"
-          >
-            {!sending && <SendHorizontal className="size-5" aria-hidden />}
-          </Button>
+            </label>
+            <label htmlFor="chat-input" className="sr-only">
+              Mensagem
+            </label>
+            <textarea
+              id="chat-input"
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) void submit(event);
+              }}
+              rows={1}
+              maxLength={2000}
+              placeholder="Escreva uma mensagem"
+              className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-edge bg-white px-4 py-2.5 text-[0.95rem] focus:border-brand focus:outline-none [field-sizing:content]"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!text.trim() && !attachment}
+              loading={sending}
+              aria-label="Enviar"
+            >
+              {!sending && <SendHorizontal className="size-5" aria-hidden />}
+            </Button>
+          </div>
         </form>
       )}
     </div>

@@ -40,6 +40,15 @@ const LABELS: Record<(typeof TABS)[number], string> = {
 
 const fail = (error: unknown) =>
   toast.error(error instanceof ApiError ? error.message : "Não foi possível concluir.");
+// O contrato do admin tipa targetType como string, então o fallback cobre tipos novos.
+const REPORT_TARGET_LABELS: Record<string, string> = {
+  ad: "Anúncio",
+  user: "Pessoa",
+  message: "Mensagem",
+  referral: "Indicação de prestador",
+  building: "Prédio",
+};
+
 const askReason = (text: string) => window.prompt(text)?.trim() || null;
 
 function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
@@ -330,15 +339,7 @@ function ReportsQueue() {
       {data.map((report) => (
         <li key={report.id} className="flex flex-col gap-2 p-4">
           <p className="text-sm text-muted">
-            {report.targetType === "ad"
-              ? "Anúncio"
-              : report.targetType === "user"
-                ? "Pessoa"
-                : report.targetType === "message"
-                  ? "Mensagem"
-                  : report.targetType === "referral"
-                    ? "Indicação de prestador"
-                    : "Prédio"}
+            {REPORT_TARGET_LABELS[report.targetType] ?? report.targetType}
             {report.sameTargetOpen > 1 && `, ${report.sameTargetOpen} denúncias sobre o mesmo item`}
           </p>
           <p className="font-semibold">

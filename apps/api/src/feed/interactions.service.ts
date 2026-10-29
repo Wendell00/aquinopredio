@@ -147,28 +147,38 @@ export class InteractionsService {
     type: CreateReportInput["targetType"],
     id: string,
   ): Promise<void> {
-    if (type === "ad") {
-      const ad = await this.feed.detail(user, id);
-      if (ad.isOwner) throw new BadRequestException("Você não pode denunciar o próprio anúncio");
-      return;
+    switch (type) {
+      case "ad": {
+        const ad = await this.feed.detail(user, id);
+        if (ad.isOwner) throw new BadRequestException("Você não pode denunciar o próprio anúncio");
+        return;
+      }
+      case "user":
+        if (id === user.id) throw new BadRequestException("Você não pode denunciar a si mesmo");
+        return this.assertExists("users", id, "Usuário não encontrado");
+      case "referral": {
+        const { isMine } = await this.referrals.assertVisible(user, id);
+        if (isMine) throw new BadRequestException("Você não pode denunciar a própria indicação");
+        return;
+      }
+      case "building":
+        return this.assertExists("buildings", id, "Prédio não encontrado");
+      default:
+        return this.assertMessageReportable(user, id);
     }
-    if (type === "user") {
-      if (id === user.id) throw new BadRequestException("Você não pode denunciar a si mesmo");
-      const [found] = await this.dataSource.query(`SELECT 1 FROM users WHERE id = $1`, [id]);
-      if (!found) throw new NotFoundException("Usuário não encontrado");
-      return;
-    }
-    if (type === "referral") {
-      const { isMine } = await this.referrals.assertVisible(user, id);
-      if (isMine) throw new BadRequestException("Você não pode denunciar a própria indicação");
-      return;
-    }
-    if (type === "building") {
-      const [found] = await this.dataSource.query(`SELECT 1 FROM buildings WHERE id = $1`, [id]);
-      if (!found) throw new NotFoundException("Prédio não encontrado");
-      return;
-    }
-    // Mensagem: só quem participa da conversa pode denunciar, e não a própria mensagem.
+  }
+
+  private async assertExists(
+    table: "users" | "buildings",
+    id: string,
+    notFound: string,
+  ): Promise<void> {
+    const [found] = await this.dataSource.query(`SELECT 1 FROM ${table} WHERE id = $1`, [id]);
+    if (!found) throw new NotFoundException(notFound);
+  }
+
+  // Só quem participa da conversa pode denunciar, e não a própria mensagem.
+  private async assertMessageReportable(user: User, id: string): Promise<void> {
     const [message] = await this.dataSource.query(
       `SELECT m.sender_id FROM messages m JOIN conversations c ON c.id = m.conversation_id
        WHERE m.id = $1 AND $2 IN (c.buyer_id, c.seller_id)`,

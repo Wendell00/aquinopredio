@@ -42,6 +42,45 @@ function WhatsappIcon(): React.JSX.Element {
   );
 }
 
+function adLocation(building: AdDetail["building"]): string {
+  if (building.sameBuilding) return "No seu prédio";
+  const distance = building.distanceM !== null ? ` (${formatDistance(building.distanceM)})` : "";
+  return `${building.name}, ${building.district}${distance}`;
+}
+
+function SellerCard({ seller }: { seller: AdDetail["seller"] }): React.JSX.Element {
+  return (
+    <section className="flex items-center gap-3 rounded-2xl border border-line bg-white p-4">
+      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-lg font-extrabold text-brand-dark">
+        {seller.name.slice(0, 1).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 font-bold">
+          <span className="truncate">{seller.name}</span>
+          {seller.verified && (
+            <BadgeCheck className="size-4.5 shrink-0 text-leaf" aria-label="Morador verificado" />
+          )}
+        </p>
+        {seller.rating.average !== null && (
+          <a href="#avaliacoes" className="flex items-center gap-1.5 text-sm hover:underline">
+            <Stars value={seller.rating.average} />
+            <span className="font-semibold">{seller.rating.average.toLocaleString("pt-BR")}</span>
+            <span className="text-muted">({seller.rating.count})</span>
+          </a>
+        )}
+        <p className="text-sm text-muted">
+          {seller.username && <span className="font-semibold">@{seller.username} · </span>}
+          No app desde{" "}
+          {new Date(seller.memberSince).toLocaleDateString("pt-BR", {
+            month: "long",
+            year: "numeric",
+          })}
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Element {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -58,9 +97,7 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
   const shareText = `Indico “${ad.title}” no Aqui no Prédio`;
   const recommendedBy = recommendationLabel(ad.recommendation.count);
 
-  const where = ad.building.sameBuilding
-    ? "No seu prédio"
-    : `${ad.building.name}, ${ad.building.district}${ad.building.distanceM !== null ? ` (${formatDistance(ad.building.distanceM)})` : ""}`;
+  const where = adLocation(ad.building);
 
   async function openWhatsapp(): Promise<void> {
     setOpening(true);
@@ -132,41 +169,7 @@ export function AdDetailView({ initial }: { initial: AdDetail }): React.JSX.Elem
           )}
         </div>
 
-        <section className="flex items-center gap-3 rounded-2xl border border-line bg-white p-4">
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-lg font-extrabold text-brand-dark">
-            {ad.seller.name.slice(0, 1).toUpperCase()}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 font-bold">
-              <span className="truncate">{ad.seller.name}</span>
-              {ad.seller.verified && (
-                <BadgeCheck
-                  className="size-4.5 shrink-0 text-leaf"
-                  aria-label="Morador verificado"
-                />
-              )}
-            </p>
-            {ad.seller.rating.average !== null && (
-              <a href="#avaliacoes" className="flex items-center gap-1.5 text-sm hover:underline">
-                <Stars value={ad.seller.rating.average} />
-                <span className="font-semibold">
-                  {ad.seller.rating.average.toLocaleString("pt-BR")}
-                </span>
-                <span className="text-muted">({ad.seller.rating.count})</span>
-              </a>
-            )}
-            <p className="text-sm text-muted">
-              {ad.seller.username && (
-                <span className="font-semibold">@{ad.seller.username} · </span>
-              )}
-              No app desde{" "}
-              {new Date(ad.seller.memberSince).toLocaleDateString("pt-BR", {
-                month: "long",
-                year: "numeric",
-              })}
-            </p>
-          </div>
-        </section>
+        <SellerCard seller={ad.seller} />
 
         <section className="flex flex-col gap-2">
           <h2 className="font-bold">Descrição</h2>

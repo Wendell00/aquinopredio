@@ -92,22 +92,26 @@ export function ReferralList(): React.JSX.Element {
           ))}
         </div>
       ) : (
-        !isError && (
-          <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-edge/50 p-6">
-            <p className="text-lg font-bold">
-              {filters.q ? "Nenhuma indicação encontrada" : "Ainda não há indicações por aqui"}
-            </p>
-            <p className="text-ink-soft">
-              {filters.q
-                ? "Tente outra palavra."
-                : "Conhece um eletricista, diarista ou costureira de confiança? Indique para os vizinhos."}
-            </p>
-          </div>
-        )
+        !isError && <EmptyReferrals searching={Boolean(filters.q)} />
       )}
 
       <div ref={sentinel} aria-hidden />
       {isFetchingNextPage && <ReferralCardSkeleton />}
     </section>
+  );
+}
+
+function EmptyReferrals({ searching }: { searching: boolean }): React.JSX.Element {
+  return (
+    <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-edge/50 p-6">
+      <p className="text-lg font-bold">
+        {searching ? "Nenhuma indicação encontrada" : "Ainda não há indicações por aqui"}
+      </p>
+      <p className="text-ink-soft">
+        {searching
+          ? "Tente outra palavra."
+          : "Conhece um eletricista, diarista ou costureira de confiança? Indique para os vizinhos."}
+      </p>
+    </div>
   );
 }
