@@ -647,7 +647,7 @@ Biome: 4 avisos `noExcessiveCognitiveComplexity` (`interactions.service.ts:157`,
 
 ### Pendências para encerrar P00
 
-- Execução efetiva do CI no GitHub Actions com estas mudanças, inclusive do complemento (Docker no runner, verificador do relatório). O workflow só dispara em `pull_request` ou `push` para `main`: exige push autorizado da branch **e** PR aberto.
+- Resolvido: execução no GitHub Actions. CI aprovado no PR #22 (run 41653758749, `pull_request`, tentativa 1; jobs `quality` e `e2e` com `success`). Checkout de `refs/pull/22/merge` inferido, contagens no runner não verificadas: ver "Entrega P00 — validação no GitHub Actions".
 - Resolvido: P00-B5.1, P00-B5.2 e P00-C1 (com o complemento) aprovadas em 03/11/2026, dentro dos escopos e da validação local registrada; a aprovação não comprova execução no GitHub Actions.
 - **Pendente, sem decisão:** validação de endereço/CEP (§5.16 item 4) em P00 ou P03 (recomendação: P03; hoje só formato do CEP; sem reprodução de defeito).
 - Proprietário: avaliar o possível uso indevido do Supabase pelos testes (requisições de broadcast possíveis, não comprovadas) e decidir se consulta os logs do projeto ou rotaciona `SUPABASE_SECRET_KEY`; chaves e `.env` não foram alterados nem lidos para os testes.
@@ -693,10 +693,26 @@ Pedido do proprietário após a revisão da P00-C1 (03/11/2026). [D-008](DECISIO
 
 ### Limitações
 
-- GitHub Actions não executado: Docker no `ubuntu-latest`, `pnpm install --frozen-lockfile` e o verificador no runner só se comprovam com push autorizado. Execução local em macOS.
+- GitHub Actions não executado nesta fatia (executado depois no PR #22; ver "Entrega P00 — validação no GitHub Actions"): Docker no `ubuntu-latest`, `pnpm install --frozen-lockfile` e o verificador no runner só se comprovam com push autorizado. Execução local em macOS.
 - A sonda TCP não passa pelo turbo (modo estrito filtra `NODE_OPTIONS`); as recusas pelo turbo seguem o mesmo `globalSetup`.
 - O fluxo local restrito (`localhost:5433/aquinopredio_test`) confia no `pnpm db:up`: não há token nesse banco. Specs de corrida nunca rodam nele.
 - O `TRUNCATE` e as migrations confiam que `DATABASE_URL` não muda entre o `global-setup` e os specs (mesmo processo/ambiente); `createTestApp` reconfere depois do boot, já após as migrations.
+
+## Entrega P00 — validação no GitHub Actions
+
+PR #22 em rascunho (`chore/context-engineering` → `main`), consultado em 03/11/2026 pela API pública do GitHub. Registro documental; sem mudança funcional.
+
+| Item | Resultado |
+|---|---|
+| Run | https://github.com/Wendell00/aquinopredio/actions/runs/41653758749, evento `pull_request`, tentativa 1 |
+| `head_sha` | `db64124` |
+| Referência testada | `refs/pull/22/merge` em `ac6fb47`, merge de `db64124` (branch) com `34b15fa` (`main`); árvore igual à do `git merge-tree` local. Checkout dessa referência **inferido** do comportamento padrão do `actions/checkout` em `pull_request`, não confirmado nos logs |
+| Job `quality` (Lint, tipos, testes e build) | `success`: `pnpm install --frozen-lockfile`, Biome, typecheck, unitários, build e auditoria (`--audit-level high`) |
+| Job `e2e` (Testes e2e da API) | `success`: `pnpm install --frozen-lockfile` e `pnpm test:e2e:ci` |
+| 8 specs protegidos e verificador | Aprovação **inferida**: o passo `pnpm test:e2e:ci` só sai com 0 se o turbo passar e o `verify-e2e-report.mjs`, em processo separado, aprovar o relatório (spec ausente, sem testes, teste não aprovado ou relatório inválido saem com 1) |
+| Contagens por spec e total no runner | **Não verificadas**: logs do job indisponíveis sem autenticação (HTTP 403) |
+
+Anotação do run: aviso de migração do rótulo `ubuntu-latest` para Ubuntu 26 a partir de 19/10/2026 (sem efeito neste run).
 
 ## Concluído
 
@@ -711,7 +727,7 @@ Pedido do proprietário após a revisão da P00-C1 (03/11/2026). [D-008](DECISIO
 
 - P00-A, P00-B1, P00-B1-F8, P00-B2.1, P00-B3 e P00-B4.1 (com o complemento) implementadas, validadas e aprovadas pelo proprietário (29/10/2026) dentro dos respectivos escopos; sem commit. Conflitos C1–C4 (P00-B3) e lacunas L1–L5 (P00-B4.1) seguem pendentes de decisão.
 - P00-B5.1 e P00-B5.2 (R1 e R2) implementadas, validadas e aprovadas pelo proprietário (03/11/2026) dentro dos respectivos escopos; sem commit. R3 segue separado.
-- P00-C1 e o complemento (proteção do banco, verificação externa do relatório, `pnpm test:e2e:ci`) implementados, validados localmente e aprovados pelo proprietário (03/11/2026) dentro do escopo e da validação local registrada; sem commit. Execução no GitHub Actions **não realizada**: o workflow dispara em `pull_request` ou `push` para `main`, então só um PR aberto (ou push em `main`) executa o CI.
+- P00-C1 e o complemento (proteção do banco, verificação externa do relatório, `pnpm test:e2e:ci`) implementados, validados localmente e aprovados pelo proprietário (03/11/2026) dentro do escopo e da validação local registrada; sem commit. CI aprovado no GitHub Actions no PR #22 (run 41653758749), com as ressalvas registradas em "Entrega P00 — validação no GitHub Actions".
 - Entrega autorizada pelo proprietário (03/11/2026): quatro commits na `chore/context-engineering` e PR em rascunho para `main`. Commits intermediários não validados isoladamente; a validação registrada é da árvore final. Sem merge.
 
 ## Checks conhecidos
@@ -721,7 +737,7 @@ Pedido do proprietário após a revisão da P00-C1 (03/11/2026). [D-008](DECISIO
 - `git diff --check`: sem erros na preparação e após cada fatia até o complemento da P00-C1.
 - `pnpm check`: verde após o complemento da P00-C1 (159 testes; 4 avisos preexistentes do Biome).
 - `pnpm --filter api test:e2e:isolated`: executado após a P00-C1 em banco descartável; 190/190. Caminho do CI (`pnpm test:e2e:ci`, turbo + verificador) em execução local: 190/190, 8 specs protegidos verificados. `pnpm test:e2e` no banco `aquinopredio_test` local não executado.
-- `pnpm build`: verde (P00-C1). Jornadas manuais: não executadas. GitHub Actions: não verificado.
+- `pnpm build`: verde (P00-C1). Jornadas manuais: não executadas. GitHub Actions: CI aprovado no PR #22 (run 41653758749; referência testada inferida, contagens no runner não verificadas).
 
 ## Pendências e riscos
 
@@ -742,6 +758,6 @@ Para cada fatia, registrar: prompt e fase do roadmap (distintos), códigos RN, c
 
 ## Próxima ação
 
-Conferir a execução do CI no GitHub Actions no PR em rascunho. Seguem abertas as decisões listadas em "Pendências para encerrar P00" (seção P00-C1): CEP/endereço (P00 ou P03), achado do Supabase e conclusão da triagem de dependências. Seguem pendentes C1–C4, L1–L5, R3 e o ambiente autorizado para o levantamento D5.
+CI do PR #22 aprovado (run 41653758749). P00 continua aberta. Seguem abertas as decisões listadas em "Pendências para encerrar P00" (seção P00-C1): CEP/endereço (P00 ou P03), achado do Supabase e conclusão da triagem de dependências. Seguem pendentes C1–C4, L1–L5, R3 e o ambiente autorizado para o levantamento D5.
 
 Merge não autorizado; push só da `chore/context-engineering`.
