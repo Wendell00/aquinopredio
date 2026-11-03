@@ -1,21 +1,23 @@
-# Documentação do Projeto — Aqui no Prédio
+# Documentação — Aqui no Prédio
 
-PWA para moradores divulgarem **serviços e produtos** dentro do seu prédio/condomínio e, opcionalmente, para prédios vizinhos dentro de um raio em km. O usuário pode escrever um texto livre e enviar fotos para que uma **IA gere o anúncio** por ele.
+## Fonte de verdade e precedência
 
-## Índice
+A [especificação definitiva v1.4](product/README.md), consolidada em 26/10/2026, define o produto desejado. Em conflito com documentos anteriores, **prevalece `docs/product/`**. Mudanças comerciais exigem decisão explícita do proprietário e atualização dos documentos relacionados.
 
-| # | Documento | Conteúdo |
-|---|-----------|----------|
-| 1 | [Visão geral](./01-visao-geral.md) | Objetivo, público-alvo, glossário, perfis de usuário, escopo do MVP |
-| 2 | [Regras de negócio](./02-regras-de-negocio.md) | Todas as regras numeradas (RN-xxx) por módulo |
-| 3 | [Fluxos do usuário](./03-fluxos.md) | Cadastro, criação/localização de prédio, criação de anúncio, feed |
-| 4 | [Integração com IA](./04-integracao-ia.md) | Geração de anúncio, validação de prédio, moderação — entradas, saídas e limites |
-| 5 | [Modelo de dados](./05-modelo-de-dados.md) | Entidades, campos, status e relacionamentos |
-| 6 | [Arquitetura e requisitos não funcionais](./06-arquitetura.md) | Stack (Next.js PWA + NestJS), geolocalização, PWA, segurança, LGPD |
-| 7 | [Roadmap](./07-roadmap.md) | MVP, fases seguintes e ideias futuras |
+| Diretório | Finalidade |
+|---|---|
+| [product/](product/README.md) | Produto aprovado: visão, planos, regras, fluxos, técnica, aceite, roadmap e catálogo |
+| [current-state/](current-state/README.md) | Especificação anterior preservada como histórico; não é auditoria do código atual |
+| [implementation/STATUS.md](implementation/STATUS.md) | Andamento, evidências, checks, pendências e próxima ação |
+| [implementation/DOCUMENTATION-TRANSITION.md](implementation/DOCUMENTATION-TRANSITION.md) | Origem dos arquivos, adaptações e correspondência entre regras antigas e definitivas |
 
-## Convenções
+## Como consultar
 
-- **RN-xxx**: regra de negócio. Toda implementação deve referenciar a RN correspondente em PRs/testes.
-- **RF-xxx**: requisito funcional. **RNF-xxx**: requisito não funcional.
-- Valores marcados como `[configurável]` devem ficar em configuração (env/tabela de settings), não fixos no código.
+1. Confira o [estado de implementação](implementation/STATUS.md).
+2. Localize o domínio na [matriz de rastreabilidade](product/10-matriz-de-rastreabilidade.md).
+3. Leia apenas regras, critérios de aceite e seções técnicas relevantes à tarefa.
+4. Investigue código e testes antes de declarar capacidade implementada.
+
+`CLAUDE.md` permanece com `@AGENTS.md`. Não carregar a documentação completa como contexto permanente. O [guia operacional](product/11-guia-context-engineering-vscode-claude-code.md) orienta entregas incrementais; fases 0–8 e prompts P00–P11 possuem numerações diferentes.
+
+As referências RN numéricas e RNF existentes em código, testes e histórico não foram renumeradas nesta preparação. Novas entregas devem citar os códigos definitivos do domínio e critérios de aceite. Correspondências parciais não equivalem a regras idênticas.
