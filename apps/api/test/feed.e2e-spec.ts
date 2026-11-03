@@ -1,9 +1,15 @@
 import type { INestApplication } from "@nestjs/common";
 import { DataSource } from "typeorm";
-import { AdModerationService } from "../src/ads/moderation/ad-moderation.service";
 import { GeoService } from "../src/geo/geo.service";
 import { StorageService } from "../src/storage/storage.service";
-import { as, createTestApp, onboardedProfile, resetRateLimits, resident } from "./support/app";
+import {
+  as,
+  createTestApp,
+  moderationSettled,
+  onboardedProfile,
+  resetRateLimits,
+  resident,
+} from "./support/app";
 import { createFakeStorage, fakeGeo, uniqueSpot } from "./support/fakes";
 
 /** 1° de latitude ≈ 111 km. */
@@ -50,7 +56,7 @@ describe("Feed, detalhe e interações (e2e)", () => {
         ...overrides,
       });
     if (res.status !== 201) throw new Error(`${res.status} ${JSON.stringify(res.body)}`);
-    await app.get(AdModerationService).moderate(res.body.id);
+    await moderationSettled(app, res.body.id);
     return res.body.id as string;
   }
 

@@ -1,10 +1,16 @@
 import type { INestApplication } from "@nestjs/common";
 import { DataSource } from "typeorm";
-import { AdModerationService } from "../src/ads/moderation/ad-moderation.service";
 import { GeoService } from "../src/geo/geo.service";
 import { SettingsService } from "../src/settings/settings.service";
 import { StorageService } from "../src/storage/storage.service";
-import { as, createTestApp, onboardedProfile, resetRateLimits, resident } from "./support/app";
+import {
+  as,
+  createTestApp,
+  moderationSettled,
+  onboardedProfile,
+  resetRateLimits,
+  resident,
+} from "./support/app";
 import { createFakeStorage, fakeGeo } from "./support/fakes";
 
 describe("Chat e notificações (e2e)", () => {
@@ -49,7 +55,7 @@ describe("Chat e notificações (e2e)", () => {
       })
       .expect(201);
     adId = created.body.id;
-    await app.get(AdModerationService).moderate(adId);
+    await moderationSettled(app, adId);
   });
 
   beforeEach(async () => {
@@ -166,7 +172,7 @@ describe("Chat e notificações (e2e)", () => {
         imageIds: [],
       })
       .expect(201);
-    await app.get(AdModerationService).moderate(res.body.id);
+    await moderationSettled(app, res.body.id);
     return res.body.id;
   }
 

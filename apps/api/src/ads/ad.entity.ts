@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  PrimaryColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
@@ -128,6 +129,14 @@ export class Ad {
   /** Ocultado por denúncias: só o admin da plataforma libera (RN-093). */
   @Column("boolean")
   manualReview: boolean;
+
+  /** Versão do conteúdo moderado (spec 5.7): sobe a cada edição de conteúdo. */
+  @Column("integer")
+  contentVersion: number;
+
+  /** Execução automática autorizada no episódio atual; o banco zera ao mudar versão ou reentrar em moderação. */
+  @Column("uuid", { nullable: true })
+  moderationRunId: string | null;
 
   @OneToMany(
     () => AdImage,
@@ -252,6 +261,42 @@ export class AdModeration {
   @Column("text", { nullable: true })
   promptVersion: string | null;
 
+  /** Versão do conteúdo avaliado; nulo em registros anteriores ao controle de versão. */
+  @Column("integer", { nullable: true })
+  contentVersion: number | null;
+
+  /** Execução automática que gerou a decisão; nulo para decisões do admin. */
+  @Column("uuid", { nullable: true })
+  runId: string | null;
+
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
+}
+
+/** Rastro de cada execução automática de moderação, inclusive descartadas (sem conteúdo do usuário). */
+@Entity({ name: "ad_moderation_runs" })
+export class AdModerationRun {
+  @PrimaryColumn("uuid")
+  id: string;
+
+  @Column("uuid")
+  adId: string;
+
+  @Column("integer")
+  contentVersion: number;
+
+  @Column("text")
+  contentHash: string;
+
+  @Column("text", { nullable: true })
+  outcome: "aplicado" | "descartado" | "falhou" | null;
+
+  @Column("text", { nullable: true })
+  discardReason: string | null;
+
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
+
+  @Column("timestamptz", { nullable: true })
+  finishedAt: Date | null;
 }

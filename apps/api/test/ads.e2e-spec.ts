@@ -1,27 +1,43 @@
 import type { INestApplication } from "@nestjs/common";
 import { DataSource } from "typeorm";
 import { AdsScheduler } from "../src/ads/ads.scheduler";
-import { AdModerationService } from "../src/ads/moderation/ad-moderation.service";
 import { AiService } from "../src/ai/ai.service";
 import { GeoService } from "../src/geo/geo.service";
 import { NotificationsService } from "../src/notifications/notifications.service";
 import { SettingsService } from "../src/settings/settings.service";
 import { StorageService } from "../src/storage/storage.service";
-import { as, createTestApp, resetRateLimits, resident } from "./support/app";
-import { createFakeAi, createFakeStorage, fakeGeo, sampleJpeg } from "./support/fakes";
+import {
+  as,
+  backgroundSettled,
+  createTestApp,
+  moderationSettled,
+  resetRateLimits,
+  resident,
+  verificationSettled,
+} from "./support/app";
+import {
+  createFakeAi,
+  createFakeGeo,
+  createFakeStorage,
+  sampleJpeg,
+  uniqueSpot,
+} from "./support/fakes";
+import { armGate } from "./support/sync";
 
 describe("Anúncios (e2e)", () => {
   let app: INestApplication;
   let db: DataSource;
   const storage = createFakeStorage();
   const ai = createFakeAi();
+  const geo = createFakeGeo();
+  const cleanups: (() => unknown)[] = [];
   let categoryId: string;
 
   beforeAll(async () => {
     app = await createTestApp((builder) =>
       builder
         .overrideProvider(GeoService)
-        .useValue(fakeGeo)
+        .useValue(geo)
         .overrideProvider(StorageService)
         .useValue(storage)
         .overrideProvider(AiService)
@@ -33,6 +49,17 @@ describe("Anúncios (e2e)", () => {
 
   beforeEach(async () => {
     await resetRateLimits(app);
+  });
+
+  afterEach(async () => {
+    // Validação de prédio dos `resident()` em segundo plano: barreiras liberadas e tarefas
+    // concluídas neste teste; só depois a IA falsa volta a aprovar prédios.
+    for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+    try {
+      await backgroundSettled(app);
+    } finally {
+      ai.buildingValidation = "aprovar";
+    }
   });
 
   afterAll(async () => {
@@ -63,7 +90,8 @@ describe("Anúncios (e2e)", () => {
     return res.body.id;
   }
 
-  const moderate = (adId: string) => app.get(AdModerationService).moderate(adId);
+  // Espera a moderação disparada pelo próprio fluxo, sem disparar outra (spec 5.16 item 5).
+  const moderate = (adId: string) => moderationSettled(app, adId);
   const scheduler = () =>
     new AdsScheduler(db, app.get(NotificationsService), app.get(SettingsService));
 
@@ -131,13 +159,43 @@ describe("Anúncios (e2e)", () => {
   });
 
   it("limita o raio enquanto o prédio está em verificação e pelo plano (RN-028, RN-141, RN-142)", async () => {
-    const { cookie, buildingId } = await resident(app);
-    const api = as(app, cookie);
-    const pending = await api.post("/api/ads").send(adInput(buildingId, { radiusKm: 1 }));
+    // Validação presa antes do mapa: o prédio segue `pendente_validacao` (RN-BLD-007, RN-028).
+    const spot = uniqueSpot();
+    const gate = armGate(geo, "reverse", {
+      label: "validação do prédio antes do mapa",
+      // A latitude volta do PostGIS com menos casas decimais: compara com tolerância.
+      match: (lat) => Math.abs(Number(lat) - spot.lat) < 1e-6,
+    });
+    cleanups.push(gate.restore);
+    const unverified = await resident(app, spot);
+    await gate.reached();
+    const unverifiedApi = as(app, unverified.cookie);
+    const pending = await unverifiedApi
+      .post("/api/ads")
+      .send(adInput(unverified.buildingId, { radiusKm: 1 }));
     expect(pending.status).toBe(403);
     expect(pending.body.message).toMatch(/verificação/);
 
-    await db.query(`UPDATE buildings SET status = 'verificado' WHERE id = $1`, [buildingId]);
+    // Sem IA a validação real termina em revisão manual: continua só o próprio prédio (RN-113).
+    ai.buildingValidation = "indisponivel";
+    gate.release();
+    expect(await verificationSettled(app, unverified.buildingId)).toMatchObject({
+      decision: "pendente_revisao",
+    });
+    const inReview = await unverifiedApi
+      .post("/api/ads")
+      .send(adInput(unverified.buildingId, { radiusKm: 1 }));
+    expect(inReview.status).toBe(403);
+    expect(inReview.body.message).toMatch(/verificação/);
+    ai.buildingValidation = "aprovar";
+
+    // Prédio verificado pela validação real: o raio passa a seguir o plano.
+    const { cookie, buildingId } = await resident(app);
+    expect(await verificationSettled(app, buildingId)).toMatchObject({
+      decision: "verificado",
+      decidedBy: "ia",
+    });
+    const api = as(app, cookie);
     await api
       .post("/api/ads")
       .send(adInput(buildingId, { radiusKm: 1 }))

@@ -13,6 +13,8 @@ import { RemoveBuildingAdmin1761300000000 } from "./1761300000000-remove-buildin
 import { Plans1761400000000 } from "./1761400000000-plans";
 import { Reviews1761500000000 } from "./1761500000000-reviews";
 import { ServiceReferrals1761600000000 } from "./1761600000000-service-referrals";
+import { AdModerationRuns1761700000000 } from "./1761700000000-ad-moderation-runs";
+import { BuildingSubmissions1761800000000 } from "./1761800000000-building-submissions";
 
 type MigrationClass = new () => MigrationInterface;
 
@@ -32,4 +34,6 @@ export const migrations: MigrationClass[] = [
   Plans1761400000000,
   Reviews1761500000000,
   ServiceReferrals1761600000000,
+  AdModerationRuns1761700000000,
+  BuildingSubmissions1761800000000,
 ];

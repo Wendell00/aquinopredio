@@ -11,6 +11,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "test:e2e": "turbo test:e2e",
+    "test:e2e:ci": "apps/api/scripts/e2e-isolated.sh --turbo",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",

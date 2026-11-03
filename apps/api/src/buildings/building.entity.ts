@@ -66,6 +66,13 @@ export class Building {
   @Column("integer")
   resubmissions: number;
 
+  /**
+   * Submissão em validação (P00-B5.2). Gerada pelo banco: default na criação e trigger no reenvio
+   * ou na mudança de um dado analisado. A aplicação só lê.
+   */
+  @Column({ type: "uuid", insert: false, update: false })
+  submissionId: string;
+
   @Column("text", { nullable: true })
   rejectionReason: string | null;
 
@@ -168,6 +175,10 @@ export class BuildingVerification {
 
   @Column("text", { nullable: true })
   promptVersion: string | null;
+
+  /** Submissão julgada (P00-B5.2); nulo em registros anteriores. */
+  @Column("uuid", { nullable: true })
+  submissionId: string | null;
 
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;

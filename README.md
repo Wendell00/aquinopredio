@@ -5,7 +5,9 @@ PWA para moradores divulgarem serviços e produtos no próprio prédio e nos pr�
 - Produto, regras de negócio (RN-xxx) e arquitetura: [`docs/`](./docs/README.md)
 - Convenções de código, estrutura e segurança: [`AGENTS.md`](./AGENTS.md)
 
-## O que já funciona
+## Capacidades descritas na base anterior
+
+A lista abaixo é histórica e ainda não foi auditada contra o código nesta preparação. Para o produto aprovado, consulte [a especificação definitiva](docs/product/README.md); para evidências de implementação, consulte [STATUS.md](docs/implementation/STATUS.md). Destaque, “subir anúncio” e outras regras substituídas não definem o produto alvo.
 
 | Área | Destaques |
 |------|-----------|
@@ -43,7 +45,7 @@ As migrations rodam sozinhas quando a API sobe.
 **Primeiro admin da plataforma:** crie a conta pelo app e rode
 `pnpm --filter api build && pnpm --filter api admin:promote seu@email.com`.
 
-**IA:** coloque `OPENROUTER_API_KEY` em `apps/api/.env` para ligar a geração de anúncios, a validação de prédios e a moderação. Sem chave, o app segue a RN-113: criação manual continua, prédios e anúncios vão para revisão (em dev, `MODERATION_WITHOUT_AI=approve` aprova após o filtro local).
+**IA:** coloque `OPENROUTER_API_KEY` em `apps/api/.env` para ligar a geração de anúncios, a validação de prédios e a moderação. Sem chave, o comportamento descrito na base anterior segue a [RN-113 histórica](docs/current-state/02-regras-de-negocio.md): criação manual continua, prédios e anúncios vão para revisão (em dev, `MODERATION_WITHOUT_AI=approve` aprova após o filtro local).
 
 **Google:** crie credenciais OAuth (redirect `http://localhost:3000/api/auth/callback/google`) e preencha `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`.
 
@@ -53,7 +55,9 @@ As migrations rodam sozinhas quando a API sobe.
 |---------|-----------|
 | `pnpm dev` | Web, API e o watch do `@repo/shared` |
 | `pnpm check` | Biome + typecheck + testes unitários |
-| `pnpm test:e2e` | E2E da API (usa o banco `aquinopredio_test`, limpo a cada execução) |
+| `pnpm test:e2e` | E2E da API no banco local `aquinopredio_test` (sempre `localhost:5433`, limpo a cada execução; specs de corrida pulados) |
+| `pnpm test:e2e:ci` | O que o CI roda: E2E pelo turbo em PostgreSQL e Mailpit descartáveis (Docker), com os specs de corrida obrigatórios e o relatório do Jest verificado — ver `apps/api/test/README.md` |
+| `pnpm --filter api test:e2e:isolated` | Idem, com o jest direto (aceita um spec como argumento) |
 | `pnpm lint:fix` | Corrige lint e formatação |
 | `pnpm build` | Build de produção |
 | `pnpm db:up` / `pnpm db:down` | Liga/desliga os serviços locais |

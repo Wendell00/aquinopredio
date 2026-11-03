@@ -14,8 +14,9 @@ import { BillingModule } from "./billing/billing.module";
 import { BuildingsModule } from "./buildings/buildings.module";
 import { ChatModule } from "./chat/chat.module";
 import { UserThrottlerGuard } from "./common/guards/user-throttler.guard";
+import { configModuleOptions } from "./config/config-module.options";
 import { databaseConfig } from "./config/database.config";
-import { type Env, validateEnv } from "./config/env";
+import type { Env } from "./config/env";
 import { FeedModule } from "./feed/feed.module";
 import { GeoModule } from "./geo/geo.module";
 import { MailModule } from "./mail/mail.module";
@@ -30,7 +31,7 @@ import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, cache: true, validate: validateEnv }),
+    ConfigModule.forRoot(configModuleOptions()),
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => ({

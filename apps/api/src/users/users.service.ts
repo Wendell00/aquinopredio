@@ -7,7 +7,7 @@ import {
   type UsernameAvailability,
   usernameSchema,
 } from "@repo/shared";
-import { QueryFailedError, Repository } from "typeorm";
+import { type EntityManager, QueryFailedError, Repository } from "typeorm";
 
 const USERNAME_TAKEN = "Este nome de usuário já está em uso";
 
@@ -110,8 +110,9 @@ export class UsersService {
   }
 
   /** Ativa a conta quando o onboarding termina (termos aceitos + vínculo com prédio). */
-  async activate(userId: string): Promise<void> {
-    await this.repo
+  /** `manager`: quando a ativação faz parte de uma transação maior (ex.: reenvio de prédio). */
+  async activate(userId: string, manager?: EntityManager): Promise<void> {
+    await (manager?.getRepository(User) ?? this.repo)
       .createQueryBuilder()
       .update()
       .set({ status: "ativo", updatedAt: new Date() })
@@ -123,5 +124,20 @@ export class UsersService {
 
   async setPrimaryBuilding(userId: string, buildingId: string | null): Promise<void> {
     await this.repo.update(userId, { primaryBuildingId: buildingId, updatedAt: new Date() });
+  }
+
+  /** Define o prédio principal só se ainda não houver um, conforme o estado no banco. */
+  async setPrimaryBuildingIfEmpty(
+    userId: string,
+    buildingId: string,
+    manager: EntityManager,
+  ): Promise<void> {
+    await manager
+      .getRepository(User)
+      .createQueryBuilder()
+      .update()
+      .set({ primaryBuildingId: buildingId, updatedAt: new Date() })
+      .where("id = :userId AND primary_building_id IS NULL", { userId })
+      .execute();
   }
 }

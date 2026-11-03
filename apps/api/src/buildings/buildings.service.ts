@@ -220,24 +220,41 @@ export class BuildingsService {
       );
     }
 
-    await this.buildings.update(buildingId, {
-      name: input.name,
-      type: input.type,
-      cep: input.cep,
-      street: input.street,
-      number: input.number,
-      district: input.district,
-      city: input.city,
-      state: input.state,
-      location: { type: "Point", coordinates: [input.lng, input.lat] },
-      unitsEstimate: input.unitsEstimate ?? null,
-      status: "pendente_validacao",
-      rejectionReason: null,
-      suggestedName: null,
-      resubmissions: building.resubmissions + 1,
+    // Prédio, contador, nova submissão (trigger), vínculo, prédio principal e ativação numa só
+    // transação, na conexão dela; a validação só é disparada depois do commit (P00-B5.2).
+    // Ordem de locks: linha de `buildings` → `building_memberships` → `users`.
+    await this.dataSource.transaction(async (manager) => {
+      const updated = await manager.getRepository(Building).update(
+        {
+          id: buildingId,
+          createdBy: user.id,
+          status: "rejeitado",
+          resubmissions: building.resubmissions,
+        },
+        {
+          name: input.name,
+          type: input.type,
+          cep: input.cep,
+          street: input.street,
+          number: input.number,
+          district: input.district,
+          city: input.city,
+          state: input.state,
+          location: { type: "Point", coordinates: [input.lng, input.lat] },
+          unitsEstimate: input.unitsEstimate ?? null,
+          status: "pendente_validacao",
+          rejectionReason: null,
+          suggestedName: null,
+          resubmissions: building.resubmissions + 1,
+        },
+      );
+      if (updated.affected !== 1) throw new ConflictException("O prédio mudou. Tente de novo.");
+      await manager
+        .getRepository(BuildingMembership)
+        .update({ userId: user.id, buildingId }, { status: "ativo" });
+      await this.users.setPrimaryBuildingIfEmpty(user.id, buildingId, manager);
+      await this.users.activate(user.id, manager);
     });
-    await this.memberships.update({ userId: user.id, buildingId }, { status: "ativo" });
-    await this.afterJoin(user, buildingId);
     await this.enqueueVerification(buildingId, "reenvio");
     return this.myBuilding(user.id, buildingId);
   }

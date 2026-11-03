@@ -17,7 +17,15 @@
     },
     "test:e2e": {
       "dependsOn": ["^build"],
-      "cache": false
+      "cache": false,
+      "passThroughEnv": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "SMTP_URL",
+        "MAILPIT_URL",
+        "BETTER_AUTH_SECRET",
+        "E2E_*"
+      ]
     },
     "dev": {
       "dependsOn": ["^build"],

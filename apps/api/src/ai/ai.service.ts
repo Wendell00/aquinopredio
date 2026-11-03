@@ -41,6 +41,8 @@ export interface StructuredRequest<TSchema extends z.ZodType> {
   userText: string;
   imageUrls?: string[];
   userId?: string | null;
+  /** Liga a chamada ao processo que a originou (ex.: execução de moderação), sem conteúdo. */
+  correlationId?: string | null;
 }
 
 export interface StructuredResult<T> {
@@ -157,8 +159,8 @@ export class AiService {
   ): Promise<void> {
     await this.dataSource
       .query(
-        `INSERT INTO ai_calls (task, user_id, model, prompt_version, tokens_in, tokens_out, latency_ms, success, error)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `INSERT INTO ai_calls (task, user_id, model, prompt_version, tokens_in, tokens_out, latency_ms, success, error, correlation_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           request.task,
           request.userId ?? null,
@@ -169,6 +171,7 @@ export class AiService {
           latencyMs,
           success,
           error ? String((error as Error).message).slice(0, 500) : null,
+          request.correlationId ?? null,
         ],
       )
       .catch((cause) => this.logger.error("Falha ao registrar chamada de IA", cause));
