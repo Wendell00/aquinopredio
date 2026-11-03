@@ -6,11 +6,13 @@ import {
 } from "@nestjs/common";
 import type { BlockedUser, CreateReportInput } from "@repo/shared";
 import { createReportInputSchema } from "@repo/shared";
-import { DataSource } from "typeorm";
+import { DataSource, type EntityManager } from "typeorm";
 import { ReferralsService } from "../referrals/referrals.service";
 import { SettingsService } from "../settings/settings.service";
 import type { User } from "../users/user.entity";
 import { FeedService } from "./feed.service";
+
+const HIDDEN_BY_REPORTS = "Ocultado após denúncias. Em revisão pela equipe.";
 
 @Injectable()
 export class InteractionsService {
@@ -98,34 +100,9 @@ export class InteractionsService {
   async report(user: User, rawInput: CreateReportInput): Promise<void> {
     const input = createReportInputSchema.parse(rawInput);
     await this.assertReportable(user, input.targetType, input.targetId);
-    try {
-      await this.dataSource.query(
-        `INSERT INTO reports (reporter_id, target_type, target_id, reason, details) VALUES ($1, $2, $3, $4, $5)`,
-        [user.id, input.targetType, input.targetId, input.reason, input.details || null],
-      );
-    } catch (error) {
-      if ((error as { code?: string }).code === "23505")
-        throw new ConflictException("Você já denunciou isso. Obrigado!");
-      throw error;
-    }
+    if (input.targetType === "ad") return this.reportAd(user, input);
+    await insertReport(this.dataSource.manager, user, input);
 
-    if (input.targetType === "ad") {
-      const threshold = await this.settings.get("reports.autoHideThreshold");
-      await this.dataSource.query(
-        `UPDATE ads SET
-           report_count = (SELECT count(DISTINCT reporter_id) FROM reports WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta'),
-           status = CASE WHEN status = 'ativo' AND
-             (SELECT count(DISTINCT reporter_id) FROM reports WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta') >= $2
-             THEN 'em_moderacao'::ad_status ELSE status END,
-           status_reason = CASE WHEN status = 'ativo' AND
-             (SELECT count(DISTINCT reporter_id) FROM reports WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta') >= $2
-             THEN 'Ocultado após denúncias. Em revisão pela equipe.' ELSE status_reason END,
-           manual_review = manual_review OR (status = 'ativo' AND
-             (SELECT count(DISTINCT reporter_id) FROM reports WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta') >= $2)
-         WHERE id = $1`,
-        [input.targetId, threshold],
-      );
-    }
     if (input.targetType === "referral") {
       // Mesmo limite dos anúncios (RN-093): a indicação some até o admin decidir.
       const threshold = await this.settings.get("reports.autoHideThreshold");
@@ -140,6 +117,41 @@ export class InteractionsService {
         [input.targetId, threshold],
       );
     }
+  }
+
+  /**
+   * Denúncia de anúncio sob o lock da linha (RN-MOD-008, P00-B1-F8). A admissão acima foi
+   * checada sem lock; o anúncio pode ter sido editado, pausado, expirado ou decidido desde então.
+   * O lock vem antes da denúncia (mesma ordem da decisão do admin: ads → reports) e a contagem
+   * roda num statement posterior ao lock, então enxerga tudo que o dono anterior do lock gravou.
+   * No limite, a revisão manual vale em qualquer estado não terminal: impede a publicação pela
+   * moderação automática (o commit descarta), pela reativação e pela renovação.
+   */
+  private async reportAd(user: User, input: CreateReportInput): Promise<void> {
+    const threshold = await this.settings.get("reports.autoHideThreshold");
+    await this.dataSource.transaction(async (manager) => {
+      const [ad] = await manager.query(`SELECT id FROM ads WHERE id = $1 FOR UPDATE`, [
+        input.targetId,
+      ]);
+      if (!ad) throw new NotFoundException("Anúncio não encontrado");
+      await insertReport(manager, user, input);
+      // Excluído e removido nunca mudam por denúncia: só a contagem é atualizada.
+      await manager.query(
+        `WITH open AS (
+           SELECT count(DISTINCT reporter_id)::int AS count FROM reports
+           WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta')
+         UPDATE ads SET
+           report_count = open.count,
+           manual_review = manual_review OR (open.count >= $2
+             AND status IN ('ativo', 'em_moderacao', 'pausado', 'expirado')),
+           status = CASE WHEN status = 'ativo' AND open.count >= $2
+             THEN 'em_moderacao'::ad_status ELSE status END,
+           status_reason = CASE WHEN status IN ('ativo', 'em_moderacao') AND open.count >= $2
+             THEN $3 ELSE status_reason END
+         FROM open WHERE id = $1`,
+        [input.targetId, threshold, HIDDEN_BY_REPORTS],
+      );
+    });
   }
 
   private async assertReportable(
@@ -186,5 +198,22 @@ export class InteractionsService {
     );
     if (!message || message.sender_id === user.id)
       throw new NotFoundException("Mensagem não encontrada");
+  }
+}
+
+async function insertReport(
+  manager: EntityManager,
+  user: User,
+  input: CreateReportInput,
+): Promise<void> {
+  try {
+    await manager.query(
+      `INSERT INTO reports (reporter_id, target_type, target_id, reason, details) VALUES ($1, $2, $3, $4, $5)`,
+      [user.id, input.targetType, input.targetId, input.reason, input.details || null],
+    );
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505")
+      throw new ConflictException("Você já denunciou isso. Obrigado!");
+    throw error;
   }
 }

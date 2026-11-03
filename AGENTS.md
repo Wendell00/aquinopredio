@@ -1,6 +1,17 @@
 # AGENTS.md — Aqui no Prédio
 
-Guia de convenções para pessoas e agentes de IA que trabalham neste repositório. Regras de negócio e produto ficam em [`docs/`](./docs/README.md) — leia antes de implementar uma feature e referencie a `RN-xxx` correspondente em testes e PRs.
+Guia de convenções para pessoas e agentes de IA que trabalham neste repositório. A especificação alvo fica em [`docs/product/`](./docs/product/README.md); consulte os documentos do domínio antes de implementar e cite os códigos RN correspondentes em testes e PRs.
+
+## Fonte de verdade do produto
+
+- `docs/product/` contém o produto aprovado; prevalece sobre a documentação histórica.
+- `docs/current-state/` preserva a especificação anterior, não comprova o código atual e não define comportamento futuro.
+- Este arquivo orienta convenções técnicas da base; não comprova que o produto alvo já está implementado.
+- Leia somente os documentos relevantes à tarefa e a matriz de rastreabilidade quando necessário.
+- Regra ausente ou conflito entre documentos definitivos: registre em `docs/implementation/STATUS.md` e peça decisão ao proprietário, sem inventar comportamento comercial.
+- Registre andamento e evidências em `docs/implementation/STATUS.md`; conclusão exige verificação no código e testes.
+- Referências antigas RN-xxx/RNF-xxx identificam o histórico; novas entregas usam os códigos de `docs/product/03-regras-de-negocio.md` e os critérios de aceite correspondentes.
+- Não faça commit, merge ou push sem autorização explícita.
 
 ## Stack
 
@@ -79,13 +90,13 @@ packages/
 
 - Coordenadas em `geography(Point, 4326)` com índice GIST; consultas por raio em SQL (`ST_DWithin`/`ST_Distance`) via `dataSource.query`, parametrizadas.
 - Endereço: ViaCEP + Nominatim/Overpass (`GeoService`), com 1 req/s ao Nominatim. Nos e2e, o `GeoService` é substituído por `test/support/fakes.ts` (sem rede).
-- IA só pelo `AiService` (OpenRouter): saída JSON validada com zod (`z.strictObject`), conteúdo do usuário sempre dentro de `delimit()`, prompts versionados em `src/ai/prompts/`. Toda chamada é registrada em `ai_calls`. Sem chave/indisponível → `AiUnavailableError` e o fluxo aplica a RN-113.
+- IA só pelo `AiService` (OpenRouter): saída JSON validada com zod (`z.strictObject`), conteúdo do usuário sempre dentro de `delimit()`, prompts versionados em `src/ai/prompts/`. Toda chamada é registrada em `ai_calls`. Sem chave/indisponível → `AiUnavailableError` e o fluxo mantém revisão segura (RN-MOD-003; política alvo em `docs/product/05-especificacao-tecnica.md` §5.7).
 - Moderação de anúncio e verificação de prédio rodam inline (fire-and-forget) nos services que recebem o request: a resposta HTTP não espera a IA/Overpass, e falhas transitórias caem na reavaliação manual pelo admin. Jobs periódicos ficam em `@Cron` (`AdsScheduler`, `MaintenanceScheduler`).
 - Valores `[configurável]`: `SettingsService` (`src/settings/settings.defaults.ts`).
 
 ## API (`apps/api`)
 
-- Um módulo por domínio (`docs/06-arquitetura.md` §6.4). Controller fino → service com a regra → repositório TypeORM.
+- Um módulo por domínio (organização histórica em `docs/current-state/06-arquitetura.md` §6.4; evolução alvo em `docs/product/05-especificacao-tecnica.md`). Controller fino → service com a regra → repositório TypeORM.
 - **Validação de entrada** com `ZodValidationPipe` + schema do `shared`. Nunca confie no corpo da requisição.
 - **Autorização no backend sempre** (RNF-012): filtros de visibilidade por prédio/raio ficam na query, nunca só no front.
 - Variáveis de ambiente passam pelo schema de `config/env.ts`; a API não sobe com env inválido. Acesse via `ConfigService<Env, true>`.
@@ -98,7 +109,7 @@ packages/
 - **Segredos só no backend** (RNF-010). No front, apenas `NEXT_PUBLIC_*` com valores públicos. `.env` nunca é commitado — mantenha os `.env.example` atualizados.
 - API: helmet, CORS restrito a `WEB_ORIGIN`, rate limit global (ajuste por rota sensível com `@Throttle`, RNF-011).
 - Web: CSP e cabeçalhos de segurança em `next.config.ts`. Ao adicionar um domínio externo (CDN de imagens, mapas), atualize a CSP.
-- Uploads só por URL pré-assinada com tipo/tamanho restritos (RNF-013).
+- Uploads devem validar tipo e tamanho e remover metadados no servidor. A base histórica descreve multipart; o alvo exige arquivos privados e entrega temporária/autorizada (`docs/product/05-especificacao-tecnica.md` §5.1). Conferir o fluxo real antes de evoluí-lo; RNF-013 histórica contém divergência sobre URL pré-assinada.
 - Entrada de usuário enviada à IA sempre delimitada no prompt, e a saída validada por schema (RNF-014).
 - Dependências com versão exata. O Dependabot espera 14 dias por versões novas; `pnpm audit --prod` roda no CI.
 

@@ -266,16 +266,30 @@ export class AdminService {
     decision: "aprovar" | "remover",
     reason?: string,
   ): Promise<void> {
-    await this.moderation.decideByAdmin(adId, decision, reason ?? null, admin.id);
-    if (decision === "aprovar") {
-      // Denúncias abertas sobre o anúncio aprovado deixam de valer.
-      await this.dataSource.query(
-        `UPDATE reports SET status = 'improcedente', resolved_by = $2, resolved_at = now(), resolution_note = 'Anúncio aprovado na revisão'
-         WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta'`,
-        [adId, admin.id],
-      );
-    }
-    await this.audit.log(admin.id, `anuncio.${decision}`, { type: "ad", id: adId }, { reason });
+    // Denúncias e auditoria na mesma transação da decisão: falha em qualquer parte desfaz tudo.
+    await this.moderation.decideByAdmin(
+      adId,
+      decision,
+      reason ?? null,
+      admin.id,
+      async (manager) => {
+        if (decision === "aprovar") {
+          // Denúncias abertas sobre o anúncio aprovado deixam de valer.
+          await manager.query(
+            `UPDATE reports SET status = 'improcedente', resolved_by = $2, resolved_at = now(), resolution_note = 'Anúncio aprovado na revisão'
+             WHERE target_type = 'ad' AND target_id = $1 AND status = 'aberta'`,
+            [adId, admin.id],
+          );
+        }
+        await this.audit.log(
+          admin.id,
+          `anuncio.${decision}`,
+          { type: "ad", id: adId },
+          { reason },
+          manager,
+        );
+      },
+    );
   }
 
   async reports(): Promise<AdminReport[]> {

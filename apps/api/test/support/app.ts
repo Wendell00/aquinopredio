@@ -5,7 +5,10 @@ import request from "supertest";
 import { DataSource } from "typeorm";
 import { AppModule } from "../../src/app.module";
 import { setupApp } from "../../src/app.setup";
+import { type BackgroundTracker, trackBackground } from "./background";
+import { assertProvisionedDatabase, resolveE2eDatabase } from "./e2e-database";
 import { buildingInput } from "./fakes";
+import { type ModerationTracker, trackModeration } from "./moderation";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -13,15 +16,87 @@ export async function createTestApp(
   customize: (builder: TestingModuleBuilder) => TestingModuleBuilder = (builder) => builder,
 ): Promise<INestApplication> {
   const moduleRef = await customize(Test.createTestingModule({ imports: [AppModule] })).compile();
+  // O global-setup já confirmou o banco antes de qualquer escrita; aqui a confirmação é pela
+  // conexão do próprio app, antes de qualquer requisição.
+  const target = resolveE2eDatabase(process.env);
+  if (target.kind === "isolated") {
+    const dataSource = moduleRef.get(DataSource);
+    await assertProvisionedDatabase((sql) => dataSource.query(sql), target);
+  }
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     bodyParser: false,
     logger: ["error"],
   });
   setupApp(app);
   await app.init();
+  // Rastreio instalado antes de qualquer requisição que dispare tarefas em segundo plano.
+  const background = trackBackground(app);
+  backgrounds.set(app, background);
+  // Escuta já em 127.0.0.1. Sem isso o supertest faz `listen(0)` no curinga `::` e chama
+  // `127.0.0.1:porta`; no macOS outro processo pode ocupar a mesma porta só em 127.0.0.1 e
+  // receber a requisição (401 com corpo alheio; pendurada, ela prende o servidor nessa porta e
+  // trava todas as requisições seguintes do spec).
+  await app.listen(0, "127.0.0.1");
   // O rate limit do Better Auth fica no banco: cada suíte começa do zero.
   await resetRateLimits(app);
+  const tracker = trackModeration(app);
+  trackers.set(app, tracker);
+  // Moderação roda em segundo plano: fecha o app só depois de as análises pendentes terminarem.
+  const close = app.close.bind(app);
+  app.close = async () => {
+    await tracker.settleAll().catch(() => undefined);
+    // Validações e notificações: o app fecha mesmo se a espera falhar, e o erro é relançado.
+    let failure: unknown = null;
+    try {
+      await background.settleAll();
+    } catch (error) {
+      failure = error;
+    } finally {
+      await close();
+    }
+    if (failure) throw failure;
+  };
   return app;
+}
+
+const trackers = new WeakMap<INestApplication, ModerationTracker>();
+const backgrounds = new WeakMap<INestApplication, BackgroundTracker>();
+
+export function backgroundTracker(app: INestApplication): BackgroundTracker {
+  const tracker = backgrounds.get(app);
+  if (!tracker) throw new Error("App de teste sem rastreio de segundo plano (use createTestApp)");
+  return tracker;
+}
+
+/**
+ * Espera a validação de prédio que o próprio fluxo disparou (a `index`-ésima do prédio) e devolve
+ * o resultado real. Não chama `verify` de novo: a chamada extra concorreria com a real.
+ */
+export function verificationSettled(app: INestApplication, buildingId: string, index = 0) {
+  return backgroundTracker(app).verifications.nth(
+    buildingId,
+    index,
+    `validação #${index} do prédio`,
+  );
+}
+
+/** Espera todas as validações e notificações pendentes (use no `afterEach`). */
+export function backgroundSettled(app: INestApplication): Promise<void> {
+  return backgroundTracker(app).settleAll();
+}
+
+export function moderationTracker(app: INestApplication): ModerationTracker {
+  const tracker = trackers.get(app);
+  if (!tracker) throw new Error("App de teste sem rastreio de moderação (use createTestApp)");
+  return tracker;
+}
+
+/**
+ * Espera a moderação que o próprio fluxo disparou em segundo plano e devolve o último resultado.
+ * Não dispara uma segunda análise: com a execução única por episódio ela seria recusada (spec 5.16).
+ */
+export function moderationSettled(app: INestApplication, adId: string) {
+  return moderationTracker(app).settled(adId);
 }
 
 /** Zera o rate limit do Better Auth (fica no banco) para um teste não afetar o outro. */

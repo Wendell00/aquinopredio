@@ -2,13 +2,12 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { DataSource } from "typeorm";
 import { AdsScheduler } from "../src/ads/ads.scheduler";
-import { AdModerationService } from "../src/ads/moderation/ad-moderation.service";
 import { StripeGateway } from "../src/billing/stripe.gateway";
 import { GeoService } from "../src/geo/geo.service";
 import { NotificationsService } from "../src/notifications/notifications.service";
 import { SettingsService } from "../src/settings/settings.service";
 import { StorageService } from "../src/storage/storage.service";
-import { as, createTestApp, resetRateLimits, resident } from "./support/app";
+import { as, createTestApp, moderationSettled, resetRateLimits, resident } from "./support/app";
 import {
   createFakeStorage,
   createFakeStripe,
@@ -48,7 +47,7 @@ describe("Planos Free/Pro e assinatura (e2e)", () => {
         imageIds: [],
       });
     if (res.status !== 201) throw new Error(`${res.status} ${JSON.stringify(res.body)}`);
-    await app.get(AdModerationService).moderate(res.body.id);
+    await moderationSettled(app, res.body.id);
     return res.body.id as string;
   }
 

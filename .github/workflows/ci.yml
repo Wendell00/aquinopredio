@@ -57,33 +57,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: quality
-    services:
-      db:
-        image: postgis/postgis:16-3.4
-        env:
-          POSTGRES_USER: aquinopredio
-          POSTGRES_PASSWORD: aquinopredio
-          POSTGRES_DB: aquinopredio
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U aquinopredio -d aquinopredio"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      # Captura os e-mails de confirmação/recuperação usados nos testes de autenticação.
-      mailpit:
-        image: axllent/mailpit:v1.27
-        ports:
-          - 1025:1025
-          - 8025:8025
-    env:
-      NODE_ENV: test
-      DATABASE_URL: postgresql://aquinopredio:aquinopredio@localhost:5432/aquinopredio
-      SMTP_URL: smtp://localhost:1025
-      MAILPIT_URL: http://localhost:8025
-      # Segredo só de teste (o banco do CI é descartável).
-      BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+    # Sem `services:`: o mesmo provisionador local (apps/api/scripts/e2e-isolated.sh) sobe PostGIS e
+    # Mailpit descartáveis com token e cluster conferidos antes de qualquer escrita, roda
+    # `pnpm turbo test:e2e` com E2E_REQUIRE_RACE=1 e verifica o relatório do Jest fora do turbo.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -98,4 +74,4 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo test:e2e
+      - run: pnpm test:e2e:ci

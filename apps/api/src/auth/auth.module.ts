@@ -2,6 +2,7 @@ import { Global, Inject, Module, type OnApplicationShutdown } from "@nestjs/comm
 import { ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Pool } from "pg";
+import { DataSource } from "typeorm";
 import { type Env, readEnv } from "../config/env";
 import { MailService } from "../mail/mail.service";
 import { User } from "../users/user.entity";
@@ -23,9 +24,16 @@ import { AuthGuard } from "./auth.guard";
     },
     {
       provide: AUTH,
-      inject: [ConfigService, AUTH_POOL, MailService],
-      useFactory: (config: ConfigService<Env, true>, pool: Pool, mail: MailService) =>
-        createAuth({ env: readEnv(config), pool, mail }),
+      // O DataSource só resolve depois de `initialize()`, que roda as migrations (`migrationsRun`).
+      // Depender dele garante que o Better Auth, que valida o schema ao ser construído, não veja
+      // o banco antes das migrations (spec 5.16, aceite 6.12).
+      inject: [ConfigService, AUTH_POOL, MailService, DataSource],
+      useFactory: (
+        config: ConfigService<Env, true>,
+        pool: Pool,
+        mail: MailService,
+        _migratedDataSource: DataSource,
+      ) => createAuth({ env: readEnv(config), pool, mail }),
     },
     UsersService,
     AuthGuard,

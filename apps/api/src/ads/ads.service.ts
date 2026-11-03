@@ -19,15 +19,17 @@ import {
   type UpdateAdInput,
   updateAdInputSchema,
 } from "@repo/shared";
-import { DataSource, In, Not, Repository } from "typeorm";
+import { DataSource, type EntityManager, In, Not, Repository } from "typeorm";
+import type { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { AiService } from "../ai/ai.service";
 import { PlansService } from "../billing/plans.service";
 import { SettingsService } from "../settings/settings.service";
-import { UploadsService } from "../uploads/uploads.service";
+import { lockClaimable, markAttachedWith, UploadsService } from "../uploads/uploads.service";
 import type { User } from "../users/user.entity";
 import { Ad, AdImage, Category } from "./ad.entity";
 import { AdDraftsService } from "./ad-drafts.service";
 import { AdModerationService } from "./moderation/ad-moderation.service";
+import { contentHash } from "./moderation/content-hash";
 
 /** Estados que ocupam vaga no limite de anúncios ativos (RN-065). */
 const COUNTS_AS_ACTIVE: AdStatus[] = ["ativo", "em_moderacao"];
@@ -101,12 +103,17 @@ export class AdsService {
     const input: AdFields = parsed;
     this.assertCanPublish(user);
     await this.publishContext(user, input);
-    await this.assertActiveLimit(user.id);
+    const maxActive = await this.assertActiveLimit(user.id);
     await this.assertNotDuplicate(user.id, input);
-    const images = await this.uploads.claim(user.id, input.imageIds);
+    // Falha rápida sem lock; a validação que vale é a feita na transação, com os uploads travados.
+    await this.uploads.claim(user.id, input.imageIds);
     await this.assertCategory(input.categoryId);
 
     const adId = await this.dataSource.transaction(async (manager) => {
+      // A checagem acima foi sem lock; a que vale é esta, serializada por titular (P00-B3).
+      await this.lockActiveQuota(manager, user.id);
+      await assertActiveLimitLocked(manager, user.id, maxActive);
+      const images = await lockClaimable(manager, user.id, input.imageIds, []);
       const result: { id: string }[] = await manager.query(
         `INSERT INTO ads (user_id, building_id, type, category_id, title, description, price_mode, price_cents,
                           radius_m, location, whatsapp_enabled, availability, tags, status, ai_generated)
@@ -134,48 +141,53 @@ export class AdsService {
       await manager
         .getRepository(AdImage)
         .save(images.map((upload, position) => ({ adId: id, uploadId: upload.id, position })));
+      await markAttachedWith(
+        manager,
+        images.map((image) => image.id),
+      );
       return id;
     });
-    await this.uploads.markAttached(images.map((image) => image.id));
     if (parsed.aiDraftId) await this.drafts.linkToAd(parsed.aiDraftId, user.id, adId);
     await this.enqueueModeration(adId);
     return this.getMine(user.id, adId);
   }
 
-  /** Edição (RN-064): título, descrição ou fotos alterados → nova moderação. */
+  /**
+   * Edição (RN-064): título, descrição ou fotos alterados → nova moderação.
+   * A comparação e a escrita acontecem sob lock da linha, contra o conteúdo efetivo: edição
+   * obsoleta não ressuscita anúncio excluído, não apaga restrição humana e, se mudar o conteúdo,
+   * cria nova versão (spec 5.7).
+   */
   async update(user: User, adId: string, rawInput: UpdateAdInput): Promise<MyAd> {
     const input = updateAdInputSchema.parse(rawInput);
-    const ad = await this.findOwned(user.id, adId, { images: true });
-    if (!EDITABLE.includes(ad.status))
-      throw new BadRequestException("Este anúncio não pode mais ser editado");
-    if (ad.buildingId !== input.buildingId) {
-      throw new BadRequestException("Para mudar o prédio do anúncio, crie um novo anúncio");
-    }
+    // Checagens rápidas, sem lock; o que importa é revalidado na transação.
+    assertEditable(await this.findOwned(user.id, adId), input);
     await this.publishContext(user, input);
     await this.assertNotDuplicate(user.id, input, adId);
     await this.assertCategory(input.categoryId);
-    const currentUploadIds = [...ad.images]
-      .sort((a, b) => a.position - b.position)
-      .map((image) => image.uploadId);
-    const images = await this.uploads.claim(user.id, input.imageIds, {
-      allowAttachedTo: currentUploadIds,
-    });
 
-    // Tudo que a moderação lê conta como conteúdo (RN-064).
-    const contentChanged =
-      ad.title !== input.title ||
-      ad.description !== input.description ||
-      ad.type !== input.type ||
-      ad.categoryId !== input.categoryId ||
-      (ad.availability ?? null) !== input.availability ||
-      ad.tags.join(",") !== input.tags.join(",") ||
-      currentUploadIds.join(",") !== input.imageIds.join(",");
-    const remoderate = contentChanged && (ad.status === "ativo" || ad.status === "em_moderacao");
-    // Pausado/expirado: modera ao reativar (senão bastaria editar pausado e reativar).
-    const deferModeration = contentChanged && !remoderate;
+    const { remoderate } = await this.dataSource.transaction(async (manager) => {
+      const locked = await this.lockOwned(manager, user.id, adId);
+      assertEditable(locked, input);
+      const currentUploadIds = (
+        await manager.getRepository(AdImage).find({
+          where: { adId: locked.id },
+          order: { position: "ASC" },
+        })
+      ).map((image) => image.uploadId);
+      // Fotos já deste anúncio podem ser mantidas ou reordenadas; as pedidas ficam travadas.
+      const images = await lockClaimable(manager, user.id, input.imageIds, currentUploadIds);
 
-    await this.dataSource.transaction(async (manager) => {
-      await manager.getRepository(Ad).update(ad.id, {
+      // Tudo que a moderação lê conta como conteúdo (RN-064): o mesmo hash do commit da análise.
+      const contentChanged =
+        contentHash({ ...locked, uploadIds: currentUploadIds }) !==
+        contentHash({ ...input, uploadIds: input.imageIds });
+      const remoderate =
+        contentChanged && (locked.status === "ativo" || locked.status === "em_moderacao");
+      // Pausado/expirado: modera ao reativar (senão bastaria editar pausado e reativar).
+      const deferModeration = contentChanged && !remoderate;
+
+      await manager.getRepository(Ad).update(locked.id, {
         type: input.type,
         categoryId: input.categoryId,
         title: input.title,
@@ -186,54 +198,87 @@ export class AdsService {
         whatsappEnabled: input.whatsappEnabled,
         availability: input.availability,
         tags: input.tags,
+        ...(contentChanged ? { contentVersion: () => "content_version + 1" } : {}),
         ...(remoderate
           ? {
               status: "em_moderacao" as const,
-              statusReason: ad.manualReview ? ad.statusReason : null,
+              // Ocultado por denúncias: o aviso continua até o admin decidir (RN-093).
+              statusReason: locked.manualReview ? locked.statusReason : null,
             }
           : {}),
         ...(deferModeration ? { needsModeration: true } : {}),
       });
-      await manager.getRepository(AdImage).delete({ adId: ad.id });
+      await manager.getRepository(AdImage).delete({ adId: locked.id });
       await manager
         .getRepository(AdImage)
-        .save(images.map((upload, position) => ({ adId: ad.id, uploadId: upload.id, position })));
+        .save(
+          images.map((upload, position) => ({ adId: locked.id, uploadId: upload.id, position })),
+        );
+      await markAttachedWith(
+        manager,
+        images.map((image) => image.id),
+      );
+      return { remoderate };
     });
-    await this.uploads.markAttached(images.map((image) => image.id));
-    if (remoderate) await this.enqueueModeration(ad.id);
-    return this.getMine(user.id, ad.id);
+    if (remoderate) await this.enqueueModeration(adId);
+    return this.getMine(user.id, adId);
   }
 
+  /**
+   * Pausa decidida sob lock (P00-B2.1): a leitura inicial só filtra; uma exclusão, remoção,
+   * edição ou ocultação posterior a ela nunca é sobrescrita. Pausar o que já está pausado é
+   * sucesso sem escrita (RN-ADS-005).
+   */
   async pause(user: User, adId: string): Promise<MyAd> {
     const ad = await this.findOwned(user.id, adId);
-    if (ad.status !== "ativo")
+    if (ad.status !== "ativo" && ad.status !== "pausado")
       throw new BadRequestException("Só anúncios ativos podem ser pausados");
-    await this.ads.update(ad.id, { status: "pausado" });
-    return this.getMine(user.id, ad.id);
+
+    await this.dataSource.transaction(async (manager) => {
+      const locked = await this.lockOwned(manager, user.id, adId);
+      if (locked.status === "pausado") return;
+      if (locked.status !== "ativo")
+        throw new BadRequestException("Só anúncios ativos podem ser pausados");
+      await this.transition(manager, locked, { status: "pausado" });
+    });
+    return this.getMine(user.id, adId);
   }
 
+  /**
+   * Reativação. O ramo (publicar direto ou moderar) é decidido sob lock da linha: uma edição
+   * concorrente que marque `needs_moderation` nunca é atropelada por uma leitura antiga.
+   */
   async resume(user: User, adId: string): Promise<MyAd> {
     const ad = await this.findOwned(user.id, adId);
     if (ad.status !== "pausado")
       throw new BadRequestException("Só anúncios pausados podem ser reativados");
     this.assertCanPublish(user);
     await this.assertMembership(user.id, ad.buildingId);
-    await this.assertActiveLimit(user.id);
-    if (ad.needsModeration) {
-      await this.ads.update(ad.id, { status: "em_moderacao", needsModeration: false });
-      await this.enqueueModeration(ad.id);
-      return this.getMine(user.id, ad.id);
-    }
-    // RN-143: no Pro o anúncio não expira, então reativar nunca cai em "expirado".
-    const expired =
-      (await this.plans.planOf(user.id)) === "free" &&
-      ad.expiresAt !== null &&
-      ad.expiresAt <= new Date();
-    await this.ads.update(ad.id, { status: expired ? "expirado" : "ativo" });
-    return this.getMine(user.id, ad.id);
+    const plan = await this.plans.planOf(user.id);
+    const maxActive = await this.maxActiveAds(user.id);
+
+    const moderate = await this.dataSource.transaction(async (manager) => {
+      await this.lockActiveQuota(manager, user.id);
+      const locked = await this.lockOwned(manager, user.id, adId);
+      if (locked.status !== "pausado")
+        throw new BadRequestException("Só anúncios pausados podem ser reativados");
+      await assertActiveLimitLocked(manager, user.id, maxActive);
+      // Revisão humana pendente também bloqueia a publicação direta (RN-093).
+      if (locked.needsModeration || locked.manualReview) {
+        await this.transition(manager, locked, { status: "em_moderacao", needsModeration: false });
+        return !locked.manualReview;
+      }
+      // RN-143: no Pro o anúncio não expira, então reativar nunca cai em "expirado".
+      const expired =
+        plan === "free" && locked.expiresAt !== null && locked.expiresAt <= new Date();
+      await this.transition(manager, locked, { status: expired ? "expirado" : "ativo" });
+      return false;
+    });
+    if (moderate) await this.enqueueModeration(adId);
+    return this.getMine(user.id, adId);
   }
 
-  /** Renovação gratuita de 1 clique: reinicia a validade (RN-063). */
+  /** Renovação gratuita de 1 clique: reinicia a validade (RN-063). Ramo decidido sob lock. */
   async renew(user: User, adId: string): Promise<MyAd> {
     const ad = await this.findOwned(user.id, adId);
     if (ad.status !== "ativo" && ad.status !== "expirado") {
@@ -241,21 +286,32 @@ export class AdsService {
     }
     this.assertCanPublish(user);
     await this.assertMembership(user.id, ad.buildingId);
-    if (ad.status === "expirado") await this.assertActiveLimit(user.id);
     const days = await this.settings.get("ads.activeDays");
-    const expiresAt = new Date(Date.now() + days * 86_400_000);
-    if (ad.needsModeration) {
-      await this.ads.update(ad.id, {
-        status: "em_moderacao",
-        needsModeration: false,
-        expiresAt,
-        expiryWarnedAt: null,
-      });
-      await this.enqueueModeration(ad.id);
-      return this.getMine(user.id, ad.id);
-    }
-    await this.ads.update(ad.id, { status: "ativo", expiresAt, expiryWarnedAt: null });
-    return this.getMine(user.id, ad.id);
+    const maxActive = await this.maxActiveAds(user.id);
+
+    const moderate = await this.dataSource.transaction(async (manager) => {
+      await this.lockActiveQuota(manager, user.id);
+      const locked = await this.lockOwned(manager, user.id, adId);
+      if (locked.status !== "ativo" && locked.status !== "expirado") {
+        throw new BadRequestException("Só anúncios ativos ou expirados podem ser renovados");
+      }
+      // Renovar anúncio ativo não ocupa vaga nova: só o expirado passa pela cota.
+      if (locked.status === "expirado") await assertActiveLimitLocked(manager, user.id, maxActive);
+      const expiresAt = new Date(Date.now() + days * 86_400_000);
+      if (locked.needsModeration || locked.manualReview) {
+        await this.transition(manager, locked, {
+          status: "em_moderacao",
+          needsModeration: false,
+          expiresAt,
+          expiryWarnedAt: null,
+        });
+        return !locked.manualReview;
+      }
+      await this.transition(manager, locked, { status: "ativo", expiresAt, expiryWarnedAt: null });
+      return false;
+    });
+    if (moderate) await this.enqueueModeration(adId);
+    return this.getMine(user.id, adId);
   }
 
   /** "Subir anúncio" no feed, 1 vez a cada 72 h (RN-067). */
@@ -421,17 +477,27 @@ export class AdsService {
       : this.settings.get("ads.maxActiveResident");
   }
 
-  /** RN-065 */
-  private async assertActiveLimit(userId: string): Promise<void> {
+  /**
+   * Lock de cota de anúncios ativos do titular (P00-B3, RN-065; princípio de RN-PLAN-005). Lock
+   * consultivo de transação: a vaga não é uma linha, então o lock da linha do anúncio não serializa
+   * anúncios distintos. Vale entre processos da API e é liberado no commit/rollback. Sempre o
+   * primeiro lock da transação (antes de `ads`); nenhum caminho o pede segurando lock de `ads`.
+   */
+  private async lockActiveQuota(manager: EntityManager, userId: string): Promise<void> {
+    await manager.query(
+      `SELECT pg_advisory_xact_lock(hashtextextended('ads.active_quota:' || $1, 0))`,
+      [userId],
+    );
+  }
+
+  /** RN-065: checagem rápida, sem lock. Devolve o limite para a checagem sob lock. */
+  private async assertActiveLimit(userId: string): Promise<number> {
     const [active, max] = await Promise.all([
       this.ads.countBy({ userId, status: In(COUNTS_AS_ACTIVE) }),
       this.maxActiveAds(userId),
     ]);
-    if (active >= max) {
-      throw new ForbiddenException(
-        `Você já tem ${max} anúncios ativos. Pause ou exclua um para publicar outro.`,
-      );
-    }
+    if (active >= max) throw activeLimitReached(max);
+    return max;
   }
 
   /** RN-066: mesmo usuário, texto > 90% parecido com outro anúncio ativo. */
@@ -456,15 +522,39 @@ export class AdsService {
     }
   }
 
-  private async findOwned(
-    userId: string,
-    adId: string,
-    relations: { images?: boolean } = {},
-  ): Promise<Ad> {
-    const ad = await this.ads.findOne({
-      where: { id: adId, userId, status: Not("excluido") },
-      relations,
+  /** Relê o anúncio do dono com `FOR UPDATE`; excluído conta como inexistente. */
+  private async lockOwned(manager: EntityManager, userId: string, adId: string): Promise<Ad> {
+    const ad = await manager.getRepository(Ad).findOne({
+      where: { id: adId, userId },
+      lock: { mode: "pessimistic_write" },
     });
+    if (!ad || ad.status === "excluido") throw new NotFoundException("Anúncio não encontrado");
+    return ad;
+  }
+
+  /**
+   * Grava a transição de estado decidida sob lock. A condição de status e versão é redundante
+   * com o lock, mas impede que um erro futuro de ordem de leitura grave por cima de outro estado.
+   */
+  private async transition(
+    manager: EntityManager,
+    locked: Ad,
+    changes: Pick<
+      QueryDeepPartialEntity<Ad>,
+      "status" | "needsModeration" | "expiresAt" | "expiryWarnedAt"
+    >,
+  ): Promise<void> {
+    const result = await manager
+      .getRepository(Ad)
+      .update(
+        { id: locked.id, status: locked.status, contentVersion: locked.contentVersion },
+        changes,
+      );
+    if (result.affected !== 1) throw new ConflictException("O anúncio mudou. Tente de novo.");
+  }
+
+  private async findOwned(userId: string, adId: string): Promise<Ad> {
+    const ad = await this.ads.findOne({ where: { id: adId, userId, status: Not("excluido") } });
     if (!ad) throw new NotFoundException("Anúncio não encontrado");
     return ad;
   }
@@ -533,6 +623,17 @@ export class AdsService {
   }
 }
 
+function assertEditable(
+  ad: Pick<Ad, "status" | "buildingId">,
+  input: { buildingId: string },
+): void {
+  if (!EDITABLE.includes(ad.status))
+    throw new BadRequestException("Este anúncio não pode mais ser editado");
+  if (ad.buildingId !== input.buildingId) {
+    throw new BadRequestException("Para mudar o prédio do anúncio, crie um novo anúncio");
+  }
+}
+
 function formatKm(km: number): string {
   return km === 0 ? "só o seu prédio" : `${km.toLocaleString("pt-BR")} km`;
 }
@@ -545,4 +646,28 @@ function formatWhen(date: Date): string {
     minute: "2-digit",
     timeZone: "America/Sao_Paulo",
   });
+}
+
+/**
+ * Contagem que decide, na conexão da transação e num statement posterior ao lock de cota: em
+ * READ COMMITTED enxerga o que o dono anterior do lock gravou. O limite vem de antes da transação
+ * (sem outra conexão enquanto o lock está seguro); mudança concorrente de configuração ou de
+ * verificação fica fora da garantia.
+ */
+async function assertActiveLimitLocked(
+  manager: EntityManager,
+  userId: string,
+  max: number,
+): Promise<void> {
+  const [row]: { count: number }[] = await manager.query(
+    `SELECT count(*)::int AS count FROM ads WHERE user_id = $1 AND status = ANY($2::ad_status[])`,
+    [userId, COUNTS_AS_ACTIVE],
+  );
+  if ((row?.count ?? 0) >= max) throw activeLimitReached(max);
+}
+
+function activeLimitReached(max: number): ForbiddenException {
+  return new ForbiddenException(
+    `Você já tem ${max} anúncios ativos. Pause ou exclua um para publicar outro.`,
+  );
 }

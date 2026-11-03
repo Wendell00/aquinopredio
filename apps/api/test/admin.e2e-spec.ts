@@ -1,18 +1,20 @@
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { DataSource } from "typeorm";
-import { AdModerationService } from "../src/ads/moderation/ad-moderation.service";
 import { GeoService } from "../src/geo/geo.service";
 import { SettingsService } from "../src/settings/settings.service";
 import { StorageService } from "../src/storage/storage.service";
 import {
   as,
+  backgroundSettled,
   createTestApp,
+  moderationSettled,
   ORIGIN,
   onboardedProfile,
   resetRateLimits,
   resident,
   signUpAndLogin,
+  verificationSettled,
 } from "./support/app";
 import { createFakeStorage, fakeGeo } from "./support/fakes";
 
@@ -45,7 +47,7 @@ describe("Administração e conta (e2e)", () => {
         imageIds: [],
       })
       .expect(201);
-    await app.get(AdModerationService).moderate(res.body.id);
+    await moderationSettled(app, res.body.id);
     return res.body.id;
   }
 
@@ -71,6 +73,11 @@ describe("Administração e conta (e2e)", () => {
     await resetRateLimits(app);
   });
 
+  afterEach(async () => {
+    // A validação do prédio de cada `resident()` roda em segundo plano: termina neste teste.
+    await backgroundSettled(app);
+  });
+
   afterAll(async () => {
     await app.close();
   });
@@ -78,6 +85,8 @@ describe("Administração e conta (e2e)", () => {
   describe("prédio sem administrador", () => {
     it("vizinho entra no prédio na hora e não existe painel de administração do prédio (RN-037)", async () => {
       const creator = await resident(app, {}, "Quem cadastrou");
+      // Preparação (não é o objeto do teste): a validação real termina antes do status fixado.
+      await verificationSettled(app, creator.buildingId);
       await db.query(`UPDATE buildings SET status = 'verificado' WHERE id = $1`, [
         creator.buildingId,
       ]);
@@ -106,9 +115,10 @@ describe("Administração e conta (e2e)", () => {
 
     it("revisa prédios pendentes com o relatório e decide (RN-027)", async () => {
       const owner = await resident(app, {}, "Criador");
-      await db.query(`UPDATE buildings SET status = 'pendente_revisao' WHERE id = $1`, [
-        owner.buildingId,
-      ]);
+      // A fila vem da validação real: sem IA, `pendente_revisao` (RN-113).
+      expect(await verificationSettled(app, owner.buildingId)).toMatchObject({
+        decision: "pendente_revisao",
+      });
       const admin = await platformAdmin();
       const queue = (
         await as(app, admin.cookie).get("/api/admin/buildings?status=pendente_revisao").expect(200)
@@ -124,6 +134,8 @@ describe("Administração e conta (e2e)", () => {
         .expect(204);
       const [mine] = (await as(app, owner.cookie).get("/api/me/buildings")).body;
       expect(mine.building.status).toBe("verificado");
+      // A notificação da decisão sai com `void` depois da resposta: espera a tarefa real.
+      await backgroundSettled(app);
       expect((await as(app, owner.cookie).get("/api/notifications")).body[0].type).toBe(
         "predio_atualizado",
       );
@@ -131,6 +143,7 @@ describe("Administração e conta (e2e)", () => {
 
     it("aprova anúncio denunciado e encerra as denúncias; remove com motivo", async () => {
       const seller = await resident(app, {}, "Vendedor Denunciado");
+      await verificationSettled(app, seller.buildingId);
       await db.query(`UPDATE buildings SET status = 'verificado' WHERE id = $1`, [
         seller.buildingId,
       ]);
